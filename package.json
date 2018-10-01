@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "description": "Backend for managing consents and data flow",
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./lib/server.js",
+    "dev": "nodemon ./lib/server.js"
   },
   "contributors": [
     "Adam Näslund <adam.naslund@iteam.se>",
@@ -18,9 +19,13 @@
   "dependencies": {
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
+    "elastic-apm-node": "^1.12.0",
     "express": "~4.16.0",
     "http-errors": "~1.6.2",
     "morgan": "~1.9.0",
     "vash": "~0.12.4"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.4"
   }
 }
