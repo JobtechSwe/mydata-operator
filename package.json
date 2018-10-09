@@ -24,6 +24,7 @@
     "express": "~4.16.0",
     "express-graphql": "^0.6.12",
     "http-errors": "^1.6.3",
+    "ioredis": "^4.0.2",
     "joi": "^13.7.0",
     "morgan": "~1.9.0",
     "vash": "~0.12.4"

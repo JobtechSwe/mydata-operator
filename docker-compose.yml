@@ -1,5 +1,13 @@
 version: '3.7'
 services:
+  redis:
+    image: redis:4.0-alpine
+    ports:
+      - 6379:6379
+    environment:
+      - REDIS_PASSWORD=fubar
+    command: redis-server --requirepass $${REDIS_PASSWORD}
+
   apm-server:
     image: docker.elastic.co/apm/apm-server:6.4.1
     ports:
