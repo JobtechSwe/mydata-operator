@@ -5,8 +5,8 @@
   "scripts": {
     "start": "node ./lib/server.js",
     "dev": "nodemon ./lib/server.js",
-    "test": "jest --watchAll",
-    "lint": "eslint '**/*.js'"
+    "test": "jest -c jest.config.js --watchAll",
+    "integration": "jest -c jest.integration.config.js --watchAll"
   },
   "contributors": [
     "Adam Näslund <adam.naslund@iteam.se>",
@@ -25,11 +25,13 @@
     "express": "~4.16.0",
     "express-graphql": "^0.6.12",
     "http-errors": "^1.6.3",
+    "ioredis": "^3.2.2",
     "joi": "^13.7.0",
     "morgan": "~1.9.0",
     "vash": "~0.12.4"
   },
   "devDependencies": {
+    "@types/ioredis": "^4.0.3",
     "@types/joi": "^13.6.0",
     "eslint": "^5.6.1",
     "eslint-config-standard": "^12.0.0",
@@ -39,6 +41,7 @@
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
     "jest": "^23.6.0",
+    "jest-spec-reporter": "^1.0.5",
     "nodemon": "^1.18.4",
     "supertest": "^3.3.0"
   }
