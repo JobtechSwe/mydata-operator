@@ -44,6 +44,14 @@ describe('routes/consents', () => {
 
       expect(response.body.links).toEqual({ self: '/consents/abc-123' })
     })
+
+    it('returns an encoded url', async () => {
+      consentService.request.mockResolvedValue({ id: 'this+id/has-to--be/encoded' })
+      const response = await request(app).post('/consents', consentRequest)
+
+      expect(response.body.links).toEqual({ self: '/consents/this%2Bid%2Fhas-to--be%2Fencoded' })
+    })
+
     it('returns a 500 error if service borks', async () => {
       const error = new Error('b0rk')
       consentService.request.mockRejectedValue(error)
