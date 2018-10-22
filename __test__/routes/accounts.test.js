@@ -1,10 +1,7 @@
 const request = require('supertest')
-const { EventEmitter } = require('events')
 const app = require('../../lib/app')
 const accountService = require('../../lib/services/accounts')
-const consentService = require('../../lib/services/consents')
 jest.mock('../../lib/services/accounts')
-jest.mock('../../lib/services/consents')
 
 describe('routes/accounts', () => {
   describe('POST: /', () => {

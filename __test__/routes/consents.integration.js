@@ -30,7 +30,7 @@ describe('Integration: routes/consent', () => {
         .accept('application/json')
         .set({ 'Content-Type': 'application/json' })
         .send(consentRequest)
-      expect(redis.getJson(data.id)).resolves.toEqual(data)
+      expect(redis.getJson(`consent:${data.id}`)).resolves.toEqual(data)
     })
     it('stores gives consentRequest a correct id', async () => {
       const { body: { data } } = await request(app)

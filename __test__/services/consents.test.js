@@ -25,12 +25,17 @@ describe('services/consents', () => {
       await expect(request({})).rejects.toThrow()
     })
     it('saves to redis with hashed key', async () => {
-      redis.setJson.mockResolvedValue({})
+      redis.set.mockResolvedValue({})
       await request(consentRequest)
-      expect(redis.setJson).toHaveBeenCalledWith(`consent:${consentRequestId}`, expect.any(Object))
+      expect(redis.set).toHaveBeenCalledWith(`consent:${consentRequestId}`, expect.any(String))
+    })
+    it('publishes redis with account id', async () => {
+      redis.publish.mockResolvedValue({})
+      await request(consentRequest)
+      expect(redis.publish).toHaveBeenCalledWith(`consents:12345`, expect.any(String))
     })
     it('returns the consent with an id', async () => {
-      redis.setJson.mockResolvedValue(consentRequest)
+      redis.set.mockResolvedValue(consentRequest)
       const result = await request(consentRequest)
       expect(result).toEqual(Object.assign({ id: consentRequestId }, consentRequest))
     })
