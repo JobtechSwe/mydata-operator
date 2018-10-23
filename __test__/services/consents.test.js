@@ -34,10 +34,10 @@ describe('services/consents', () => {
       await request(consentRequest)
       expect(redis.publish).toHaveBeenCalledWith(`consents:12345`, expect.any(String))
     })
-    it('returns the consent with an id', async () => {
+    it('returns the consent with an id and status pending', async () => {
       redis.set.mockResolvedValue(consentRequest)
       const result = await request(consentRequest)
-      expect(result).toEqual(Object.assign({ id: consentRequestId }, consentRequest))
+      expect(result).toEqual(Object.assign({ id: consentRequestId, status: 'pending' }, consentRequest))
     })
   })
   describe('#get', () => {
