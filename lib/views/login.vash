@@ -1,0 +1,15 @@
+@html.extend('layout', function(model) {
+  @html.block('content', function(model) {
+    <h1>Login to @model.serviceName</h1>
+    <p>This will send your credentials to @model.redirectURI. Only do this if your trust this site.</p>
+    <form action="@model.endpoint" method="post">
+        <input type="hidden" name="redirectURI" value="@model.redirectURI" />
+        <input type="hidden" name="responseType" value="@model.responseType" />
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" />
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" />
+        <button type="submit">Login</button>
+    </form>
+  })
+})
