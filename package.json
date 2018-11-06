@@ -6,7 +6,8 @@
     "start": "node ./lib/server.js",
     "dev": "nodemon ./lib/server.js",
     "test": "jest -c jest.config.js --watchAll",
-    "integration": "jest -c jest.integration.config.js --watchAll"
+    "integration": "jest -c jest.integration.config.js --watchAll",
+    "migrate": "DATABASE_URL=postgres://postgresuser:postgrespassword@localhost:5432/mydata node-pg-migrate"
   },
   "contributors": [
     "Adam Näslund <adam.naslund@iteam.se>",
@@ -30,7 +31,11 @@
     "ioredis": "^3.2.2",
     "joi": "^13.7.0",
     "morgan": "~1.9.0",
+    "node-pg-migrate": "^3.13.0",
+    "pg": "^7.6.0",
+    "scrypt": "^6.0.3",
     "ssestream": "^1.0.1",
+    "uuid": "^3.3.2",
     "vash": "~0.12.4"
   },
   "devDependencies": {
