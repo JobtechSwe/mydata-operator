@@ -4,7 +4,7 @@
   "description": "Backend for managing consents and data flow",
   "scripts": {
     "start": "node ./lib/server.js",
-    "dev": "nodemon ./lib/server.js",
+    "dev": "npm run migrate up && nodemon ./lib/server.js",
     "test": "jest -c jest.config.js --watchAll",
     "integration": "jest -c jest.integration.config.js --watchAll",
     "migrate": "DATABASE_URL=postgres://postgresuser:postgrespassword@localhost:5432/mydata node-pg-migrate"
