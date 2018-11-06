@@ -120,28 +120,36 @@ describe('routes/accounts', () => {
 
       expect(accountService.get).toHaveBeenCalledWith(accountId)
     })
-    xit('sets status 404 if account was not found', async () => {
+    it('sets status 404 if account was not found', async () => {
       accountService.get.mockResolvedValue(undefined)
-      const response = await request(app).get(`/accounts/${accountId}`)
+      const response = await request(app)
+        .get(`/accounts/${accountId}`)
+        .set({ 'Authorization': `Bearer ${token}` })
 
       expect(response.status).toEqual(404)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
     })
-    xit('sets status 200 if account was found', async () => {
+    it('sets status 200 if account was found', async () => {
       accountService.get.mockResolvedValue(account)
-      const response = await request(app).get(`/accounts/${accountId}`)
+      const response = await request(app)
+        .get(`/accounts/${accountId}`)
+        .set({ 'Authorization': `Bearer ${token}` })
 
       expect(response.status).toEqual(200)
     })
-    xit('returns account if it was found', async () => {
+    it('returns account if it was found', async () => {
       accountService.get.mockResolvedValue(account)
-      const response = await request(app).get(`/accounts/${accountId}`)
+      const response = await request(app)
+        .get(`/accounts/${accountId}`)
+        .set({ 'Authorization': `Bearer ${token}` })
 
       expect(response.body).toEqual(accountResponse)
     })
-    xit('returns a 500 if service borks', async () => {
+    it('returns a 500 if service borks', async () => {
       accountService.get.mockRejectedValue(new Error('b0rk'))
-      const response = await request(app).get(`/accounts/${accountId}`)
+      const response = await request(app)
+        .get(`/accounts/${accountId}`)
+        .set({ 'Authorization': `Bearer ${token}` })
 
       expect(response.status).toEqual(500)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')

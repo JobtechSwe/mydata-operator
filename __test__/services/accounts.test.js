@@ -1,16 +1,15 @@
 const { create, get } = require('../../lib/services/accounts')
-const redis = require('../../lib/adapters/redis')
 const postgres = require('../../lib/adapters/postgres')
 jest.mock('../../lib/adapters/redis')
 jest.mock('../../lib/adapters/postgres')
 
 describe('services/accounts', () => {
+  let connection
+  beforeEach(() => {
+    connection = { query: jest.fn().mockResolvedValue(), end: jest.fn().mockResolvedValue() }
+    postgres.connect.mockResolvedValue(connection)
+  })
   describe('#create', () => {
-    let connection
-    beforeEach(() => {
-      connection = { query: jest.fn().mockResolvedValue(), end: jest.fn().mockResolvedValue() }
-      postgres.connect.mockResolvedValue(connection)
-    })
     it('fails if the input is invalid', async () => {
       await expect(create({})).rejects.toThrow()
     })
@@ -43,19 +42,19 @@ describe('services/accounts', () => {
       expect(connection.end).toHaveBeenCalled()
     })
   })
-  xdescribe('#get', () => {
+  describe('#get', () => {
     it('fails if the input is invalid', async () => {
       await expect(get()).rejects.toThrow()
     })
-    it('gets from redis by id', async () => {
-      const id = 'einar'
-      redis.getJson.mockResolvedValue({ id })
+    it('gets from postgres by id', async () => {
+      const id = 'abc-123'
+      connection.query.mockResolvedValue({ rows: [{ id }] })
       await get(id)
-      expect(redis.getJson).toHaveBeenCalledWith(`account:${id}`)
+      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [id])
     })
     it('returns the account', async () => {
-      const id = 'einar'
-      redis.getJson.mockResolvedValue({ id })
+      const id = 'abc-123'
+      connection.query.mockResolvedValue({ rows: [{ id }] })
       const result = await get(id)
       expect(result).toEqual({ id })
     })
