@@ -43,7 +43,7 @@ describe('services/accounts', () => {
       expect(connection.end).toHaveBeenCalled()
     })
   })
-  describe('#get', () => {
+  xdescribe('#get', () => {
     it('fails if the input is invalid', async () => {
       await expect(get()).rejects.toThrow()
     })
