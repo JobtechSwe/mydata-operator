@@ -1,173 +1,79 @@
 const request = require('supertest')
-const app = require(`${process.cwd()}/lib/app`)
-const { createToken } = require(`${process.cwd()}/lib/services/jwt`)
-const accountService = require(`${process.cwd()}/lib/services/accounts`)
-jest.mock(`${process.cwd()}/lib/services/accounts`)
+const app = require('../../lib/app')
+const accountService = require('../../lib/services/accounts')
 
-describe('routes/accounts', () => {
-  describe('POST: /', () => {
-    let account
-    beforeEach(() => {
-      account = {
-        id: 'einar'
-      }
+jest.mock('../../lib/services/accounts')
+
+describe.only('routes /accounts', () => {
+  describe('/login', () => {
+    describe('GET', () => {
+      it('renders the login form', async () => {
+        const response = await request(app).get('/login')
+        expect(response.status).toEqual(200)
+        expect(response.header['content-type']).toMatch(/^text\/html/)
+        expect(response.text).toEqual(expect.any(String))
+      })
     })
-    it('calls accountService.create()', async () => {
-      accountService.create.mockResolvedValue(account)
-      await request(app)
-        .post('/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+    xdescribe('POST', () => {
+      it('calls accountService.login()', async () => {
+        const account = {
+          id: 'abc-123',
+          username: 'johan'
+        }
+        accountService.login.mockResolvedValue(account)
 
-      expect(accountService.create).toHaveBeenCalledWith(account)
-    })
-    it('returns a 400 error if payload is bad', async () => {
-      const error = Object.assign(new Error('Bad request'), { name: 'ValidationError' })
-      accountService.create.mockRejectedValue(error)
-      const response = await request(app)
-        .post('/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+        await request(app)
+          .post('/auth')
+          .set({ 'Content-Type': 'application/json' })
+          .accept('application/json')
+          .send({ username: 'johan', password: 'pwd' })
 
-      expect(response.status).toEqual(400)
-      expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
-    })
-    it('sets status created if succesful', async () => {
-      accountService.create.mockResolvedValue(account)
-      const response = await request(app)
-        .post('/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+        expect(accountService.login).toHaveBeenCalledWith('johan', 'pwd')
+      })
+      it('returns a jwt', async () => {
+        const account = {
+          id: 'abc-123',
+          username: 'johan'
+        }
+        accountService.login.mockResolvedValue(account)
 
-      expect(response.status).toEqual(201)
-    })
-    it('returns the new account if succesful', async () => {
-      accountService.create.mockResolvedValue(account)
-      const response = await request(app)
-        .post('/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+        const response = await request(app)
+          .post('/auth')
+          .set({ 'Content-Type': 'application/json' })
+          .accept('application/json')
+          .send({ username: 'johan', password: 'pwd' })
 
-      expect(response.body.data).toEqual(account)
-    })
-    it('returns the account url if succesful', async () => {
-      accountService.create.mockResolvedValue(account)
-      const response = await request(app)
-        .post('/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+        expect(response.body).toEqual(expect.any(Object))
+        expect(response.body.token).toEqual(expect.any(String))
 
-      expect(response.body.links).toEqual({ self: '/accounts/einar' })
-    })
-    it('returns an encoded url', async () => {
-      accountService.create.mockResolvedValue({ id: 'this+id/has-to--be/encoded' })
-      const response = await request(app)
-        .post('/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
-
-      expect(response.body.links).toEqual({ self: '/accounts/this%2Bid%2Fhas-to--be%2Fencoded' })
-    })
-    it('returns a 500 error if service borks', async () => {
-      const error = new Error('b0rk')
-      accountService.create.mockRejectedValue(error)
-      const response = await request(app)
-        .post('/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
-
-      expect(response.status).toEqual(500)
-      expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
+        const token = JSON.parse(Buffer.from(response.body.token.split('.')[1], 'base64').toString('utf8'))
+        expect(token.account).toEqual(account)
+      })
     })
   })
-  describe('GET: /:id', () => {
-    let accountId, account, accountResponse, token
-    beforeEach(() => {
-      accountId = 'abc-123'
-      account = {
-        id: accountId,
-        username: 'einar'
-      }
-      accountResponse = {
-        data: account,
-        links: {
-          self: `/accounts/${accountId}`
-        }
-      }
-      token = createToken(account)
-
-      accountService.get.mockResolvedValue(account)
+  describe('/register', () => {
+    describe('GET', () => {
+      it('renders the registration form', async () => {
+        const response = await request(app).get('/register')
+        expect(response.status).toEqual(200)
+        expect(response.header['content-type']).toMatch(/^text\/html/)
+        expect(response.text).toEqual(expect.any(String))
+      })
     })
-    it('throws if token is invalid', async () => {
-      const response = await request(app)
-        .get(`/accounts/${accountId}`)
-        .set({ 'Authorization': `Bearer derp` })
-
-      expect(accountService.get).not.toHaveBeenCalled()
-      expect(response.status).toEqual(401)
+    describe('POST', () => {
+      xit('lacks tests', () => { })
     })
-    it('calls accountService.get() if token is valid', async () => {
-      await request(app)
-        .get(`/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-
-      expect(accountService.get).toHaveBeenCalledWith(accountId)
+  })
+  describe('/settings', () => {
+    describe('GET', () => {
+      it('redirects to /login if you are not logged in', async () => {
+        const response = await request(app).get('/settings')
+        expect(response.status).toEqual(302)
+        expect(response.header['location']).toEqual('/login')
+      })
     })
-    it('sets status 404 if account was not found', async () => {
-      accountService.get.mockResolvedValue(undefined)
-      const response = await request(app)
-        .get(`/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-
-      expect(response.status).toEqual(404)
-      expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
-    })
-    it('sets status 200 if account was found', async () => {
-      accountService.get.mockResolvedValue(account)
-      const response = await request(app)
-        .get(`/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-
-      expect(response.status).toEqual(200)
-    })
-    it('returns account if it was found', async () => {
-      accountService.get.mockResolvedValue(account)
-      const response = await request(app)
-        .get(`/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-
-      expect(response.body).toEqual(accountResponse)
-    })
-    it('returns a 500 if service borks', async () => {
-      accountService.get.mockRejectedValue(new Error('b0rk'))
-      const response = await request(app)
-        .get(`/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-
-      expect(response.status).toEqual(500)
-      expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
+    describe('POST', () => {
+      xit('lacks tests', () => { })
     })
   })
 })
