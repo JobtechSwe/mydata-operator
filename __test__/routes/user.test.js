@@ -6,13 +6,11 @@ jest.mock('../../lib/services/accounts')
 describe('routes/user', () => {
   describe('/login', () => {
     describe('GET', () => {
-      xit('renders the login form', async () => {
-        // Vash breaks in conjunction with Jest :(
+      it('renders the login form', async () => {
         const response = await request(app).get('/login')
-        expect(response).toEqual('')
         expect(response.status).toEqual(200)
-        expect(response.header('content-type')).toEqual('text/html')
-        expect(response.body).toEqual(expect.any('String'))
+        expect(response.header['content-type']).toMatch(/^text\/html/)
+        expect(response.text).toEqual(expect.any(String))
       })
     })
     xdescribe('POST', () => {
