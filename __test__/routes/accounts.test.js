@@ -116,7 +116,10 @@ describe('routes/accounts', () => {
     it('calls accountService.get() if token is valid', async () => {
       await request(app)
         .get(`/accounts/${accountId}`)
-        .set({ 'Authorization': `Bearer ${token}` })
+        .set({
+          Accept: 'application/json',
+          'Authorization': `Bearer ${token}`
+        })
 
       expect(accountService.get).toHaveBeenCalledWith(accountId)
     })
@@ -124,7 +127,10 @@ describe('routes/accounts', () => {
       accountService.get.mockResolvedValue(undefined)
       const response = await request(app)
         .get(`/accounts/${accountId}`)
-        .set({ 'Authorization': `Bearer ${token}` })
+        .set({
+          Accept: 'application/json',
+          'Authorization': `Bearer ${token}`
+        })
 
       expect(response.status).toEqual(404)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
@@ -133,7 +139,10 @@ describe('routes/accounts', () => {
       accountService.get.mockResolvedValue(account)
       const response = await request(app)
         .get(`/accounts/${accountId}`)
-        .set({ 'Authorization': `Bearer ${token}` })
+        .set({
+          Accept: 'application/json',
+          'Authorization': `Bearer ${token}`
+        })
 
       expect(response.status).toEqual(200)
     })
@@ -141,7 +150,10 @@ describe('routes/accounts', () => {
       accountService.get.mockResolvedValue(account)
       const response = await request(app)
         .get(`/accounts/${accountId}`)
-        .set({ 'Authorization': `Bearer ${token}` })
+        .set({
+          Accept: 'application/json',
+          'Authorization': `Bearer ${token}`
+        })
 
       expect(response.body).toEqual(accountResponse)
     })
@@ -149,7 +161,10 @@ describe('routes/accounts', () => {
       accountService.get.mockRejectedValue(new Error('b0rk'))
       const response = await request(app)
         .get(`/accounts/${accountId}`)
-        .set({ 'Authorization': `Bearer ${token}` })
+        .set({
+          Accept: 'application/json',
+          'Authorization': `Bearer ${token}`
+        })
 
       expect(response.status).toEqual(500)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')

@@ -20,10 +20,13 @@
   },
   "homepage": "https://github.com/JobtechSwe/mydata-operator#readme",
   "dependencies": {
+    "change-case": "^3.0.2",
+    "changecase-objects": "^1.1.0",
     "connect-redis": "^3.4.0",
     "cookie-parser": "~1.4.3",
     "cors": "^2.8.4",
     "debug": "~2.6.9",
+    "dropbox-fs": "^0.3.0",
     "elastic-apm-node": "^1.12.0",
     "eventsource": "^1.0.7",
     "express": "~4.16.0",
@@ -43,6 +46,7 @@
     "vash": "~0.12.4"
   },
   "devDependencies": {
+    "@types/axios": "^0.14.0",
     "@types/ioredis": "^4.0.3",
     "@types/jest": "^23.3.5",
     "@types/joi": "^13.6.0",

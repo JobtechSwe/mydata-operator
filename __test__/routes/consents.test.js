@@ -21,7 +21,7 @@ describe('routes/consents', () => {
     it('returns a 400 error if payload is bad', async () => {
       const error = Object.assign(new Error('Bad request'), { name: 'ValidationError' })
       consentService.request.mockRejectedValue(error)
-      const response = await request(app).post('/consents', consentRequest)
+      const response = await request(app).post('/consents', consentRequest).set({ 'Content-Type': 'application/json' })
 
       expect(response.status).toEqual(400)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
@@ -53,7 +53,7 @@ describe('routes/consents', () => {
     it('returns a 500 error if service borks', async () => {
       const error = new Error('b0rk')
       consentService.request.mockRejectedValue(error)
-      const response = await request(app).post('/consents', consentRequest)
+      const response = await request(app).post('/consents', consentRequest).set({ 'Content-Type': 'application/json' })
 
       expect(response.status).toEqual(500)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
@@ -75,7 +75,7 @@ describe('routes/consents', () => {
     })
     it('sets status 404 if consent was not found', async () => {
       consentService.get.mockResolvedValue(undefined)
-      const response = await request(app).get(`/consents/${consentId}`)
+      const response = await request(app).get(`/consents/${consentId}`).set({ 'Accept': 'application/json' })
 
       expect(response.status).toEqual(404)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
@@ -97,7 +97,7 @@ describe('routes/consents', () => {
     })
     it('returns a 500 if service borks', async () => {
       consentService.get.mockRejectedValue(new Error('b0rk'))
-      const response = await request(app).get(`/consents/${consentId}`)
+      const response = await request(app).get(`/consents/${consentId}`).set({ 'Accept': 'application/json' })
 
       expect(response.status).toEqual(500)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')

@@ -1,7 +1,7 @@
 @html.extend('layout', function(model) {
   @html.block('content', function(model) {
-    <h1>Register new account with @model.operatorName</h1>
-    <form action="@model.endpoint" method="post">
+    <h1>Register new account</h1>
+    <form method="post">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" />
         <label for="password">Password:</label>
