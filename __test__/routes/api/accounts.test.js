@@ -2,7 +2,9 @@ const request = require('supertest')
 const app = require(`${process.cwd()}/lib/app`)
 const { createToken } = require(`${process.cwd()}/lib/services/jwt`)
 const accountService = require(`${process.cwd()}/lib/services/accounts`)
+const pds = require(`${process.cwd()}/lib/adapters/pds`)
 jest.mock(`${process.cwd()}/lib/services/accounts`)
+jest.mock(`${process.cwd()}/lib/adapters/pds`)
 
 describe('routes /api/accounts', () => {
   describe('POST: /', () => {
@@ -179,6 +181,43 @@ describe('routes /api/accounts', () => {
 
       expect(response.status).toEqual(500)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
+    })
+  })
+  describe('PUT: /:accountId/data/:area', () => {
+    let accountId, account, pdsCredentials, token, data
+    beforeEach(() => {
+      accountId = 'abc-123'
+      pdsCredentials = {
+        access_token: 'some weird string'
+      }
+      account = {
+        id: accountId,
+        pdsProvider: 'dropbox',
+        pdsCredentials: Buffer.from(JSON.stringify(pdsCredentials)).toString('base64')
+      }
+      token = createToken(account)
+      data = [
+        { id: '1', schoolName: 'Uppsala University', fieldOfStudy: 'Computer Science', degree: 'Master' },
+        { id: '2', schoolName: 'Hyper Island', fieldOfStudy: 'UX' }
+      ]
+
+      accountService.get.mockResolvedValue(account)
+    })
+    it('saves data to PDS', async () => {
+      const fs = {
+        outputFile: jest.fn().mockResolvedValue().mockName('outputFile')
+      }
+      pds.get.mockReturnValue(fs).mockName('get')
+
+      const response = await request(app)
+        .put('/api/accounts/abc-123/data/education')
+        .set({ 'Content-Type': 'application/json' })
+        .set({ 'Authorization': `Bearer ${token}` })
+        .accept('application/json')
+        .send(data)
+
+      expect(response.status).toEqual(200)      
+      expect(fs.outputFile).toHaveBeenCalledWith('/data/education.json', JSON.stringify(data))
     })
   })
 })

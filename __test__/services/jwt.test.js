@@ -8,14 +8,13 @@ describe('services/auth', () => {
         id: '12345',
         username: 'johan',
         pdsProvider: 'dropbox',
-        pdsCredentials: {abc:123}
+        pdsCredentials: Buffer.from('dfsgdfdfg').toString('base64')
       }
     })
-    it('creates a token containing account info, excluding pdsCredentials', () => {
+    it('creates a token containing account info', () => {
       let [alg, content, sign] = createToken(account).split('.')
       content = JSON.parse(Buffer.from(content, 'base64').toString('utf8'))
-      const {id, username, pdsProvider} = account
-      expect(content.account).toEqual({ id, username, pdsProvider })
+      expect(content.account).toEqual(account)
     })
   })
 })

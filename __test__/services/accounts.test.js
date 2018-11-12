@@ -58,5 +58,16 @@ describe('services/accounts', () => {
       const result = await get(id)
       expect(result).toEqual({ id })
     })
+    it('returns pdsCredentials as base64', async () => {
+      const id = 'abc-123'
+      const pdsCredentials = {
+        0: 0x7b,
+        1: 0x7d
+      }
+      const credentialsString = Buffer.from([0x7b, 0x7d]).toString('base64')
+      connection.query.mockResolvedValue({ rows: [{ id, pdsCredentials }] })
+      const result = await get(id)
+      expect(result).toEqual({ id, pdsCredentials: credentialsString })
+    })
   })
 })
