@@ -146,6 +146,17 @@ describe('routes /api/accounts', () => {
 
       expect(response.status).toEqual(200)
     })
+    it('sets status 403 if account does not match route', async () => {
+      accountService.get.mockResolvedValue(account)
+      const response = await request(app)
+        .get(`/api/accounts/some-other-account-id`)
+        .set({
+          Accept: 'application/json',
+          'Authorization': `Bearer ${token}`
+        })
+
+      expect(response.status).toEqual(403)
+    })
     it('returns account if it was found', async () => {
       accountService.get.mockResolvedValue(account)
       const response = await request(app)
