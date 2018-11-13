@@ -66,7 +66,7 @@ services:
       - POSTGRES_PASSWORD=postgrespassword
       - POSTGRES_DB=mydata
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mydata"]
+      test: ["CMD-SHELL", "pg_isready -U postgresuser -d mydata"]
       interval: 10s
       timeout: 5s
       retries: 5
