@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Backend for managing consents and data flow",
   "scripts": {
-    "start": "node ./lib/server.js",
+    "start": "node-pg-migrate up && node ./lib/server.js",
     "dev": "npm run migrate up && nodemon --inspect ./lib/server.js",
     "test": "jest -c jest.config.js --watchAll",
     "integration": "jest -c jest.integration.config.js --watchAll",
@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/JobtechSwe/mydata-operator#readme",
   "dependencies": {
+    "axios": "^0.18.0",
     "change-case": "^3.0.2",
     "changecase-objects": "^1.1.0",
     "connect-redis": "^3.4.0",
@@ -52,7 +53,6 @@
     "@types/joi": "^13.6.0",
     "@types/node-fetch": "^2.1.2",
     "@types/supertest": "^2.0.6",
-    "axios": "^0.18.0",
     "eslint": "^5.6.1",
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.14.0",
