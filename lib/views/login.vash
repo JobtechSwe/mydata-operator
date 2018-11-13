@@ -11,5 +11,6 @@
       <input type="password" id="password" name="password" />
       <button type="submit">Login</button>
     </form>
+    <p style="margin-top:5px;">Don't have an account yet? <a href="/register">Register here</a></p>
   })
 })
