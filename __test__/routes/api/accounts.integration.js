@@ -4,12 +4,7 @@ const axios = require('axios')
 const app = require(`${process.cwd()}/lib/app`)
 
 const port = 1729 // Because Ramanujan
-const host = `http://localhost:${port}`
-
-function log(...args) {
-  args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).forEach(t => process.stdout.write(t))
-  process.stdout.write('\n')
-}
+const host = `http://localhost:${port}/api`
 
 const consentrequest = () => ({
   account_id: 'ramanujan',
@@ -17,13 +12,12 @@ const consentrequest = () => ({
   scope: ['read'],
   description: 'DO IT!'
 })
-
-describe('Integration: routes/accounts', () => {
+describe('Integration: routes /api/accounts', () => {
   let server, eventsource
   beforeAll(async () => {
     server = createServer(app)
     await new Promise((resolve, reject) => server.listen(port, (err) => err ? reject(err) : resolve()))
-    await axios.post(`${host}/accounts`, { id: 'ramanujan' })
+    // await axios.post(`${host}/accounts`, { id: 'ramanujan' })
   })
   afterAll /* you're my wonder wall */(async () => {
     await axios.delete(`${host}/accounts/ramanujan`)
@@ -32,15 +26,14 @@ describe('Integration: routes/accounts', () => {
   describe('subscribing to consents', () => {
     beforeEach(() => {
       process.env.NODE_ENV = 'test'
-      eventsource = new EventSource(`${host}/accounts/ramanujan/consents`)
-      eventsource.addEventListener('error', err => log(err))
+      // eventsource = new EventSource(`${host}/accounts/ramanujan/consents`)
     })
     afterEach(() => {
       if (eventsource) {
         eventsource.close()
       }
     })
-    it('recieves an update when a consent request is created', (done) => {
+    xit('recieves an update when a consent request is created', (done) => {
       const cr = consentrequest()
       eventsource.addEventListener('consent', ({ data }) => {
         expect(JSON.parse(data)).toMatchObject(cr)

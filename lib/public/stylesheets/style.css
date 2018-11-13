@@ -6,3 +6,7 @@ body {
 a {
   color: #00B7FF;
 }
+
+.mdl-button__expandable {
+  height: unset;
+}

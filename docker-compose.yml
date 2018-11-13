@@ -56,3 +56,12 @@ services:
       retries: 3
     depends_on:
       - elasticsearch
+  
+  postgres:
+    image: postgres:11-alpine
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgresuser
+      - POSTGRES_PASSWORD=postgrespassword
+      - POSTGRES_DB=mydata

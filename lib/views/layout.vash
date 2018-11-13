@@ -2,10 +2,25 @@
 <html>
 <head>
   <meta>
-  <title>@model.title</title>
-  <link rel='stylesheet' href='/stylesheets/style.css' />
+  <title>@(model.title || model.name)</title>
+  <link rel="stylesheet" href="/material/material.css" />
+  <link rel="stylesheet" href="/stylesheets/fonts.css" />
+  <link rel="stylesheet" href="/stylesheets/style.css" />
 </head>
 <body>
-  @html.block('content')
+  <div class="mdl-layout">
+    <header class="mdl-layout__header">
+      <div class="mdl-layout__header-row">
+        <span class="mdl-layout-title">@model.name</span>
+      </div>
+    </header>
+    <main class="mdl-layout__content">
+      @html.block('content')
+    </main>
+    <footer class="mdl-layout__footer">
+
+    </footer>
+  </div>
+  <script src="/material/material.js"></script>
 </body>
 </html>

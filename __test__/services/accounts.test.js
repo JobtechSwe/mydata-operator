@@ -1,40 +1,73 @@
 const { create, get } = require('../../lib/services/accounts')
-const redis = require('../../lib/adapters/redis')
+const postgres = require('../../lib/adapters/postgres')
 jest.mock('../../lib/adapters/redis')
+jest.mock('../../lib/adapters/postgres')
 
 describe('services/accounts', () => {
+  let connection
+  beforeEach(() => {
+    connection = { query: jest.fn().mockResolvedValue(), end: jest.fn().mockResolvedValue() }
+    postgres.connect.mockResolvedValue(connection)
+  })
   describe('#create', () => {
     it('fails if the input is invalid', async () => {
       await expect(create({})).rejects.toThrow()
     })
-    it('saves to redis with id as key', async () => {
-      const account = { id: 'einar' }
-      redis.setJson.mockResolvedValue(account)
+    it('saves to postgres with id, username and hashed password', async () => {
+      const account = { username: 'einar', password: 'abcdefghijk' }
       await create(account)
-      expect(redis.setJson).toHaveBeenCalledWith(`account:${account.id}`, account)
+      expect(postgres.connect).toHaveBeenCalled()
+      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [expect.any(String), account.username, expect.any(Buffer)])
     })
     it('returns the account', async () => {
-      const account = { id: 'einar' }
-      redis.setJson.mockResolvedValue(account)
+      const account = { username: 'einar', password: 'abcdefghijk' }
       const result = await create(account)
-      expect(result).toEqual(account)
+      expect(result).toEqual({
+        id: expect.any(String),
+        username: account.username
+      })
+    })
+    it('closes the connection on success', async () => {
+      const account = { username: 'einar', password: 'abcdefghijk' }
+      await create(account)
+      expect(connection.end).toHaveBeenCalled()
+    })
+    it('closes the connection on fail', async () => {
+      const account = { username: 'einar', password: 'abcdefghijk' }
+      connection.query.mockRejectedValue(new Error())
+
+      try {
+        await create(account)
+      } catch (err) { }
+      expect(connection.end).toHaveBeenCalled()
     })
   })
   describe('#get', () => {
     it('fails if the input is invalid', async () => {
       await expect(get()).rejects.toThrow()
     })
-    it('gets from redis by id', async () => {
-      const id = 'einar'
-      redis.getJson.mockResolvedValue({ id })
+    it('gets from postgres by id', async () => {
+      const id = 'abc-123'
+      connection.query.mockResolvedValue({ rows: [{ id }] })
       await get(id)
-      expect(redis.getJson).toHaveBeenCalledWith(`account:${id}`)
+      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [id])
     })
     it('returns the account', async () => {
-      const id = 'einar'
-      redis.getJson.mockResolvedValue({ id })
+      const id = 'abc-123'
+      connection.query.mockResolvedValue({ rows: [{ id }] })
       const result = await get(id)
       expect(result).toEqual({ id })
+    })
+    it('returns pdsCredentials as base64', async () => {
+      const id = 'abc-123'
+      const pdsCredentials = {
+        0: 0x7b,
+        1: 0x7d
+      }
+      const credentialsString = Buffer.from([0x7b, 0x7d]).toString('base64')
+      connection.query.mockResolvedValue({ rows: [{ id, pdsCredentials }] })
+      const result = await get(id)
+      expect(result).toEqual({ id, pdsCredentials: credentialsString })
     })
   })
 })

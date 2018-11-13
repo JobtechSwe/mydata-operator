@@ -1,9 +1,9 @@
 const request = require('supertest')
-const app = require('../../lib/app')
-const redis = require('../../lib/adapters/redis')
+const app = require(`${process.cwd()}/lib/app`)
+const redis = require(`${process.cwd()}/lib/adapters/redis`)
 const { createHash } = require('crypto')
 
-describe('Integration: routes/consent', () => {
+describe('Integration: routes /api/consents', () => {
   describe('request consent', () => {
     let consentRequest, consentRequestId
     beforeEach(() => {
@@ -26,7 +26,7 @@ describe('Integration: routes/consent', () => {
     })
     it('stores consentRequest in redis', async () => {
       const { body: { data } } = await request(app)
-        .post('/consents')
+        .post('/api/consents')
         .accept('application/json')
         .set({ 'Content-Type': 'application/json' })
         .send(consentRequest)
@@ -34,7 +34,7 @@ describe('Integration: routes/consent', () => {
     })
     it('stores gives consentRequest a correct id', async () => {
       const { body: { data } } = await request(app)
-        .post('/consents')
+        .post('/api/consents')
         .accept('application/json')
         .set({ 'Content-Type': 'application/json' })
         .send(consentRequest)
@@ -43,16 +43,16 @@ describe('Integration: routes/consent', () => {
     describe('get consent status', () => {
       beforeEach(async () => {
         await request(app)
-          .post('/consents')
+          .post('/api/consents')
           .accept('application/json')
           .set({ 'Content-Type': 'application/json' })
           .send(consentRequest)
       })
       it('returns the consent', async () => {
         const { body: { data } } = await request(app)
-          .get(`/consents/${consentRequestId}`)
+          .get(`/api/consents/${consentRequestId}`)
           .accept('application/json')
-        expect(data).toEqual(Object.assign({ id: consentRequestId }, consentRequest))
+        expect(data).toEqual(Object.assign({ id: consentRequestId, status: 'pending' }, consentRequest))
       })
     })
   })
