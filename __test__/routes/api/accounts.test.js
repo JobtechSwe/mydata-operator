@@ -216,8 +216,8 @@ describe('routes /api/accounts', () => {
         .accept('application/json')
         .send(data)
 
-      expect(response.status).toEqual(200)      
-      expect(fs.outputFile).toHaveBeenCalledWith('/data/education.json', JSON.stringify(data))
+      expect(response.status).toEqual(200)
+      expect(fs.outputFile).toHaveBeenCalledWith('/data/education.json', JSON.stringify(data), { encoding: 'utf8' })
     })
   })
 })
