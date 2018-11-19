@@ -56,7 +56,7 @@ services:
       retries: 3
     depends_on:
       - elasticsearch
-  
+
   postgres-operator:
     image: postgres:11-alpine
     ports:
@@ -70,7 +70,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  
+
 #  operator:
 #    build: .
 #    environment:
@@ -88,3 +88,12 @@ services:
 #      - 3000:3000
 #    depends_on:
 #      - postgres-operator
+
+  cv:
+    image: jobtechswe/mydata-cv
+    environment:
+      - PORT=4000
+      - APP_NAME='mydata-cv api'
+      - APM_SERVER=http://apm-server:8200
+    ports:
+      - 4000:4000
