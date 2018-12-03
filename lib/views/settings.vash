@@ -13,6 +13,21 @@
         </a>
       </li>
     ))
+      <li class="mdl-list__item">
+          <button class="mdl-button mdl-button__expandable mdl-js-button mdl-button--raised mdl-button--accent" disabled style="width:150px;height:50px">
+            Google Drive
+          </button>
+      </li>
+      <li class="mdl-list__item">
+          <button class="mdl-button mdl-button__expandable mdl-js-button mdl-button--raised mdl-button--accent" disabled style="width:150px;height:50px">
+            FTP
+          </button>
+      </li>
+      <li class="mdl-list__item">
+          <button class="mdl-button mdl-button__expandable mdl-js-button mdl-button--raised mdl-button--accent" disabled style="width:150px;height:50px">
+            Amazon S3
+          </button>
+      </li>
     </ul>
   })
 })
