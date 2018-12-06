@@ -1,0 +1,6 @@
+@html.extend('layout', function(model) {
+  @html.block('content', function(model) {
+    <h1>Thank you!</h1>
+    <p>Your app is now registered.</p>
+  })
+})
