@@ -4,7 +4,7 @@ const accountService = require('../../lib/services/accounts')
 
 jest.mock('../../lib/services/accounts')
 
-describe.only('routes /accounts', () => {
+describe('routes /accounts', () => {
   describe('/login', () => {
     describe('GET', () => {
       it('renders the login form', async () => {
@@ -51,19 +51,7 @@ describe.only('routes /accounts', () => {
       })
     })
   })
-  describe('/register', () => {
-    describe('GET', () => {
-      it('renders the registration form', async () => {
-        const response = await request(app).get('/register')
-        expect(response.status).toEqual(200)
-        expect(response.header['content-type']).toMatch(/^text\/html/)
-        expect(response.text).toEqual(expect.any(String))
-      })
-    })
-    describe('POST', () => {
-      xit('lacks tests', () => { })
-    })
-  })
+
   describe('/settings', () => {
     describe('GET', () => {
       it('redirects to /login if you are not logged in', async () => {
