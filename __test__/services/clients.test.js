@@ -13,10 +13,6 @@ describe('services/clients', () => {
     postgres.connect.mockResolvedValue(connection)
   })
 
-  afterEach(() => {
-    jest.clearAllMocks()
-  })
-
   describe('#create', () => {
     let data
 

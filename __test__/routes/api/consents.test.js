@@ -4,103 +4,56 @@ const consentService = require(`${process.cwd()}/lib/services/consents`)
 jest.mock(`${process.cwd()}/lib/services/consents`)
 
 describe('routes /api/consents', () => {
-  describe('POST: /', () => {
-    let consentRequest, consent
+  describe('POST: /requests', () => {
+    let body
     beforeEach(() => {
-      consentRequest = {}
-      consent = {
-        id: 'abc-123'
+      body = {
+        client_id: 'mycv.com',
+        scope: ['foo', 'bar']
       }
     })
-    it('calls consentService.request()', async () => {
-      consentService.request.mockResolvedValue(consent)
-      await request(app).post('/api/consents', consentRequest)
+    it('calls consentService.createRequest()', async () => {
+      consentService.createRequest.mockResolvedValue('1234')
 
-      expect(consentService.request).toHaveBeenCalledWith(consentRequest)
-    })
-    it('returns a 400 error if payload is bad', async () => {
-      const error = Object.assign(new Error('Bad request'), { name: 'ValidationError' })
-      consentService.request.mockRejectedValue(error)
-      const response = await request(app).post('/api/consents', consentRequest).set({ 'Content-Type': 'application/json' })
+      await request(app).post('/api/consents/requests').send(body)
 
-      expect(response.status).toEqual(400)
-      expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
-    })
-    it('sets status created if succesful', async () => {
-      consentService.request.mockResolvedValue(consent)
-      const response = await request(app).post('/api/consents', consentRequest)
-
-      expect(response.status).toEqual(201)
-    })
-    it('returns the new consent if succesful', async () => {
-      consentService.request.mockResolvedValue(consent)
-      const response = await request(app).post('/api/consents', consentRequest)
-
-      expect(response.body.data).toEqual(consent)
-    })
-    it('returns the consent url if succesful', async () => {
-      consentService.request.mockResolvedValue(consent)
-      const response = await request(app).post('/api/consents', consentRequest)
-
-      expect(response.body.links).toEqual({ self: '/api/consents/abc-123' })
-    })
-    it('returns an encoded url', async () => {
-      consentService.request.mockResolvedValue({ id: 'this+id/has-to--be/encoded' })
-      const response = await request(app).post('/api/consents', consentRequest)
-
-      expect(response.body.links).toEqual({ self: '/api/consents/this%2Bid%2Fhas-to--be%2Fencoded' })
-    })
-    it('returns a 500 error if service borks', async () => {
-      const error = new Error('b0rk')
-      consentService.request.mockRejectedValue(error)
-      const response = await request(app).post('/api/consents', consentRequest).set({ 'Content-Type': 'application/json' })
-
-      expect(response.status).toEqual(500)
-      expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
+      expect(consentService.createRequest).toHaveBeenCalledWith(body)
     })
   })
-  describe('GET: /:id', () => {
-    let consentId, consent
-    beforeEach(() => {
-      consentId = 'abc-123'
-      consent = {
-        id: 'abc-123'
-      }
-    })
-    it('calls consentService.get()', async () => {
-      consentService.get.mockResolvedValue(consent)
-      await request(app).get(`/api/consents/${consentId}`)
 
-      expect(consentService.get).toHaveBeenCalledWith(consentId)
-    })
-    it('sets status 404 if consent was not found', async () => {
-      consentService.get.mockResolvedValue(undefined)
-      const response = await request(app).get(`/api/consents/${consentId}`).set({ 'Accept': 'application/json' })
+  describe('GET: /requests/:id', () => {
+    const consentRequestBody = {
+      client_id: 'mycv.com',
+      scope: ['foo', 'bar']
+    }
 
-      expect(response.status).toEqual(404)
-      expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
-    })
-    it('sets status 200 if consent was found', async () => {
-      consentService.get.mockResolvedValue(consent)
-      const response = await request(app).get(`/api/consents/${consentId}`)
+    it('calls consentService.getRequest()', async () => {
+      const id = '1234'
+      consentService.getRequest.mockResolvedValue(consentRequestBody)
 
-      expect(response.status).toEqual(200)
-    })
-    it('returns consent if it was found', async () => {
-      consentService.get.mockResolvedValue(consent)
-      const response = await request(app).get(`/api/consents/${consentId}`)
+      await request(app).get(`/api/consents/requests/${id}`)
 
-      expect(response.body).toEqual({
-        data: consent,
-        links: { self: '/api/consents/abc-123' }
-      })
+      expect(consentService.getRequest).toHaveBeenCalledWith(id)
     })
-    it('returns a 500 if service borks', async () => {
-      consentService.get.mockRejectedValue(new Error('b0rk'))
-      const response = await request(app).get(`/api/consents/${consentId}`).set({ 'Accept': 'application/json' })
 
-      expect(response.status).toEqual(500)
-      expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
+    it('should return 200 with data', async () => {
+      const id = '1234'
+      consentService.getRequest.mockResolvedValue(consentRequestBody)
+
+      const response = await request(app).get(`/api/consents/requests/${id}`)
+
+      expect(response.status).toBe(200)
+      expect(response.body).toEqual({ data: consentRequestBody })
+    })
+
+    it('should return 404 without data', async () => {
+      const id = '1234'
+      consentService.getRequest.mockResolvedValue(null)
+
+      const response = await request(app).get(`/api/consents/requests/${id}`)
+
+      expect(response.status).toBe(404)
+      expect(response.body).toEqual({})
     })
   })
 })
