@@ -9,7 +9,7 @@ describe('adapters/pds/dropbox', () => {
   describe('#getFs', () => {
     let fs
     beforeEach(() => {
-      fs = dropbox.getFs({access_token: 'derp'})
+      fs = dropbox.getFs({ access_token: 'derp' })
     })
     describe('#readFile', () => {
       it('fixes utf-8 error', (done) => {

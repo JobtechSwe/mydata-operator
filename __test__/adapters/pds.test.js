@@ -11,7 +11,7 @@ describe('adapters/pds', () => {
           access_token: 'some_weird_string',
           token_type: 'bearer',
           uid: '123456',
-          account_id: "dbid:some_other_weird_string"
+          account_id: 'dbid:some_other_weird_string'
         }
         account = {
           pdsProvider: 'dropbox',
@@ -31,7 +31,7 @@ describe('adapters/pds', () => {
       })
       it('wraps fs with promises', () => {
         const pdsFs = pds.get(account)
-        const p = pdsFs.readFile('./path', {encoding: 'utf8'})
+        const p = pdsFs.readFile('./path', { encoding: 'utf8' })
         expect(fs.readFile).toBeCalledWith('./path', { encoding: 'utf8' }, expect.any(Function))
         expect(p.toString()).toEqual('[object Promise]')
       })

@@ -19,7 +19,7 @@ describe('Integration: routes /api/accounts', () => {
     await new Promise((resolve, reject) => server.listen(port, (err) => err ? reject(err) : resolve()))
     // await axios.post(`${host}/accounts`, { id: 'ramanujan' })
   })
-  afterAll /* you're my wonder wall */(async () => {
+  afterAll(async () => {
     await axios.delete(`${host}/accounts/ramanujan`)
     server.close()
   })
