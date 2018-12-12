@@ -1,60 +1,46 @@
-const { createHash } = require('crypto')
-const { request, get } = require('../../lib/services/consents')
+const { createRequest, getRequest } = require('../../lib/services/consents')
 const redis = require('../../lib/adapters/redis')
 jest.mock('../../lib/adapters/redis')
 
 describe('services/consents', () => {
-  let consentRequest, consentRequestId
   beforeEach(() => {
-    consentRequest = {
-      account_id: '12345',
-      client_id: 'dfgdfgdfgg',
-      scope: ['read'],
-      description: 'DO IT!'
-    }
-    consentRequestId = createHash('SHA256')
-      .update(JSON.stringify({
-        account_id: consentRequest.account_id,
-        client_id: consentRequest.client_id
-      }))
-      .digest()
-      .toString('base64')
+    redis.set.mockResolvedValue('OK')
   })
-  describe('#request', () => {
+
+  describe('#createRequest', () => {
     it('fails if the input is invalid', async () => {
-      await expect(request({})).rejects.toThrow()
+      await expect(createRequest({})).rejects.toThrow()
     })
-    it('saves to redis with hashed key', async () => {
-      redis.set.mockResolvedValue({})
-      await request(consentRequest)
-      expect(redis.set).toHaveBeenCalledWith(`consent:${consentRequestId}`, expect.any(String))
+
+    it('calls redis.set', async () => {
+      await createRequest({
+        client_id: 'mycv.com',
+        scope: ['foo', 'bar']
+      })
+
+      expect(redis.set).toHaveBeenCalledTimes(1)
     })
-    it('publishes redis with account id', async () => {
-      redis.publish.mockResolvedValue({})
-      await request(consentRequest)
-      expect(redis.publish).toHaveBeenCalledWith(`consents:12345`, expect.any(String))
-    })
-    it('returns the consent with an id and status pending', async () => {
-      redis.set.mockResolvedValue(consentRequest)
-      const result = await request(consentRequest)
-      expect(result).toEqual(Object.assign({ id: consentRequestId, status: 'pending' }, consentRequest))
+
+    it('retries with new random id', async () => {
+      redis.set.mockResolvedValueOnce('not-OK')
+
+      await createRequest({
+        client_id: 'mycv.com',
+        scope: ['foo', 'bar']
+      })
+
+      expect(redis.set).toHaveBeenCalledTimes(2)
+      expect(redis.set.mock.calls[0][0]).not.toBe(redis.set.mock.calls[0][1])
     })
   })
-  xdescribe('#get', () => {
-    it('fails if the input is invalid', async () => {
-      await expect(get()).rejects.toThrow()
-    })
-    it('gets from redis by id', async () => {
-      const id = 'abc-123'
-      redis.getJson.mockResolvedValue(consentRequest)
-      await get(id)
-      expect(redis.getJson).toHaveBeenCalledWith(`consent:${id}`)
-    })
-    it('returns the account', async () => {
-      const id = 'abc-123'
-      redis.getJson.mockResolvedValue(consentRequest)
-      const result = await get(id)
-      expect(result).toEqual(consentRequest)
+
+  describe('#getRequest', () => {
+    it('returns an object', async () => {
+      redis.get.mockResolvedValue('{"client_id":"mydearjohn.com","scope":["loveletters"]}')
+
+      const result = await getRequest('5678')
+
+      expect(result).toEqual({ client_id: 'mydearjohn.com', scope: ['loveletters'] })
     })
   })
 })
