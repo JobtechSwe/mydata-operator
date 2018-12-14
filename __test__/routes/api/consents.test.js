@@ -56,4 +56,45 @@ describe('routes /api/consents', () => {
       expect(response.body).toEqual({})
     })
   })
+
+  describe('POST: /', () => {
+    const consent = {
+      client_id: 'mycv.com',
+      scope: 'I want it all and I want it now'
+    }
+
+    it('should call the consent service', async () => {
+      consentService.create.mockResolvedValue()
+
+      await request(app)
+        .post('/api/consents')
+        .send(consent)
+
+      expect(consentService.create).toBeCalledTimes(1)
+      expect(consentService.create).toBeCalledWith(consent)
+    })
+
+    it('returns 400 if service throws ValidationError', async () => {
+      const err = new Error('asdads')
+      err.name = 'ValidationError'
+      consentService.create.mockRejectedValue(err)
+
+      const response = await request(app)
+        .post('/api/consents')
+        .send(consent)
+
+      expect(response.status).toBe(400)
+    })
+
+    it('returns 500 if service throws other error', async () => {
+      const err = new Error('asdads')
+      consentService.create.mockRejectedValue(err)
+
+      const response = await request(app)
+        .post('/api/consents')
+        .send(consent)
+
+      expect(response.status).toBe(500)
+    })
+  })
 })
