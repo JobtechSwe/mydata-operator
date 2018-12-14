@@ -95,7 +95,11 @@ describe('routes /api/accounts', () => {
       accountId = 'abc-123'
       account = {
         id: accountId,
-        username: 'einar'
+        publicKey: 'asdsad',
+        pds: {
+          provider: 'dropbox',
+          access_token: 'asdasda'
+        }
       }
       accountResponse = {
         data: account,
@@ -103,36 +107,14 @@ describe('routes /api/accounts', () => {
           self: `/api/accounts/${accountId}`
         }
       }
-      token = createToken(account)
 
       accountService.get.mockResolvedValue(account)
-    })
-    it('throws if token is invalid', async () => {
-      const response = await request(app)
-        .get(`/api/accounts/${accountId}`)
-        .set({ 'Authorization': `Bearer derp` })
-
-      expect(accountService.get).not.toHaveBeenCalled()
-      expect(response.status).toEqual(401)
-    })
-    it('calls accountService.get() if token is valid', async () => {
-      await request(app)
-        .get(`/api/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-
-      expect(accountService.get).toHaveBeenCalledWith(accountId)
     })
     it('sets status 404 if account was not found', async () => {
       accountService.get.mockResolvedValue(undefined)
       const response = await request(app)
         .get(`/api/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
+        .set({ Accept: 'application/json' })
 
       expect(response.status).toEqual(404)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
@@ -141,32 +123,14 @@ describe('routes /api/accounts', () => {
       accountService.get.mockResolvedValue(account)
       const response = await request(app)
         .get(`/api/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-
+        .set({ Accept: 'application/json' })
       expect(response.status).toEqual(200)
-    })
-    it('sets status 403 if account does not match route', async () => {
-      accountService.get.mockResolvedValue(account)
-      const response = await request(app)
-        .get(`/api/accounts/some-other-account-id`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-
-      expect(response.status).toEqual(403)
     })
     it('returns account if it was found', async () => {
       accountService.get.mockResolvedValue(account)
       const response = await request(app)
         .get(`/api/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
+        .set({ Accept: 'application/json' })
 
       expect(response.body).toEqual(accountResponse)
     })
@@ -181,43 +145,6 @@ describe('routes /api/accounts', () => {
 
       expect(response.status).toEqual(500)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
-    })
-  })
-  describe('PUT: /:accountId/data/:area', () => {
-    let accountId, account, pdsCredentials, token, data
-    beforeEach(() => {
-      accountId = 'abc-123'
-      pdsCredentials = {
-        access_token: 'some weird string'
-      }
-      account = {
-        id: accountId,
-        pdsProvider: 'dropbox',
-        pdsCredentials: Buffer.from(JSON.stringify(pdsCredentials)).toString('base64')
-      }
-      token = createToken(account)
-      data = [
-        { id: '1', schoolName: 'Uppsala University', fieldOfStudy: 'Computer Science', degree: 'Master' },
-        { id: '2', schoolName: 'Hyper Island', fieldOfStudy: 'UX' }
-      ]
-
-      accountService.get.mockResolvedValue(account)
-    })
-    it('saves data to PDS', async () => {
-      const fs = {
-        outputFile: jest.fn().mockResolvedValue().mockName('outputFile')
-      }
-      pds.get.mockReturnValue(fs).mockName('get')
-
-      const response = await request(app)
-        .put('/api/accounts/abc-123/data/education')
-        .set({ 'Content-Type': 'application/json' })
-        .set({ 'Authorization': `Bearer ${token}` })
-        .accept('application/json')
-        .send(data)
-
-      expect(response.status).toEqual(200)
-      expect(fs.outputFile).toHaveBeenCalledWith('/data/education.json', JSON.stringify(data), { encoding: 'utf8' })
     })
   })
 })

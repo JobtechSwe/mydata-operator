@@ -10,30 +10,35 @@ describe('services/accounts', () => {
     postgres.connect.mockResolvedValue(connection)
   })
   describe('#create', () => {
+    const account = {
+      firstName: 'Einar',
+      lastName: 'Persson',
+      publicKey: '-----BEGIN RSA PUBLIC KEY----- ...',
+      pds: {
+        provider: 'dropbox',
+        access_token: 'asdasdasd'
+      }
+    }
+
     it('fails if the input is invalid', async () => {
       await expect(create({})).rejects.toThrow()
     })
-    it('saves to postgres with id, username and hashed password', async () => {
-      const account = { username: 'einar', password: 'abcdefghijk' }
+    it('calls connect and query', async () => {
       await create(account)
       expect(postgres.connect).toHaveBeenCalled()
-      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [expect.any(String), account.username, expect.any(Buffer)])
+      expect(connection.query).toHaveBeenCalled()
     })
-    it('returns the account', async () => {
-      const account = { username: 'einar', password: 'abcdefghijk' }
+    it('returns the account id', async () => {
       const result = await create(account)
       expect(result).toEqual({
-        id: expect.any(String),
-        username: account.username
+        id: expect.any(String)
       })
     })
     it('closes the connection on success', async () => {
-      const account = { username: 'einar', password: 'abcdefghijk' }
       await create(account)
       expect(connection.end).toHaveBeenCalled()
     })
     it('closes the connection on fail', async () => {
-      const account = { username: 'einar', password: 'abcdefghijk' }
       connection.query.mockRejectedValue(new Error())
 
       try {
