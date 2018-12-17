@@ -1,8 +1,6 @@
 const request = require('supertest')
 const app = require(`${process.cwd()}/lib/app`)
-const { createToken } = require(`${process.cwd()}/lib/services/jwt`)
 const accountService = require(`${process.cwd()}/lib/services/accounts`)
-const pds = require(`${process.cwd()}/lib/adapters/pds`)
 jest.mock(`${process.cwd()}/lib/services/accounts`)
 jest.mock(`${process.cwd()}/lib/adapters/pds`)
 
