@@ -1,9 +1,11 @@
 const { createRequest, getRequest, create, get } = require('../../lib/services/consents')
 const redis = require('../../lib/adapters/redis')
 const postgres = require('../../lib/adapters/postgres')
+const clientsService = require('../../lib/services/clients')
 const axios = require('axios')
 jest.mock('../../lib/adapters/redis')
 jest.mock('../../lib/adapters/postgres')
+jest.mock('../../lib/services/clients')
 jest.mock('axios')
 
 describe('services/consents', () => {
@@ -39,12 +41,33 @@ describe('services/consents', () => {
   })
 
   describe('#getRequest', () => {
-    it('returns an object', async () => {
+    it('tries to get request from Redis', () => {
+      getRequest('5678')
+      expect(redis.get).toBeCalledWith('consentRequest:5678')
+    })
+    it('uses client_id to get client from Postgres', async () => {
       redis.get.mockResolvedValue('{"client_id":"mydearjohn.com","scope":["loveletters"]}')
-
+      clientsService.get.mockResolvedValue({})
+      await getRequest('5678')
+      expect(clientsService.get).toBeCalledWith('mydearjohn.com')
+    })
+    it('merges request and client and returns it', async () => {
+      redis.get.mockResolvedValue('{"client_id":"mydearjohn.com","scope":["loveletters"]}')
+      clientsService.get.mockResolvedValue({
+        client_id: 'mydearjohn.com',
+        displayName: 'My dear John'
+      })
       const result = await getRequest('5678')
-
-      expect(result).toEqual({ client_id: 'mydearjohn.com', scope: ['loveletters'] })
+      expect(result).toEqual({
+        request: {
+          client_id: 'mydearjohn.com',
+          scope: ['loveletters']
+        },
+        client: {
+          client_id: 'mydearjohn.com',
+          displayName: 'My dear John'
+        }
+      })
     })
   })
 
