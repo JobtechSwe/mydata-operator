@@ -4,7 +4,7 @@
   "description": "Backend for managing consents and data flow",
   "scripts": {
     "start": "node-pg-migrate up && node ./lib/server.js",
-    "dev": "npm run migrate up && nodemon --inspect ./lib/server.js",
+    "dev": "npm run migrate up && NODE_ENV=development nodemon --inspect ./lib/server.js",
     "test": "jest -c jest.config.js --watchAll",
     "lint": "eslint '**/*.js'",
     "integration": "jest -c jest.integration.config.js --watchAll",
