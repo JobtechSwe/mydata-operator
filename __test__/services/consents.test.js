@@ -7,8 +7,14 @@ jest.mock('../../lib/adapters/postgres')
 jest.mock('axios')
 
 describe('services/consents', () => {
+  let connection
   beforeEach(() => {
     redis.set.mockResolvedValue('OK')
+    connection = {
+      query: jest.fn().mockResolvedValue({ rows: [{}] }),
+      end: jest.fn().mockResolvedValue()
+    }
+    postgres.connect.mockResolvedValue(connection)
   })
 
   describe('#createRequest', () => {
@@ -44,23 +50,26 @@ describe('services/consents', () => {
 
       const result = await getRequest('5678')
 
-      expect(result).toEqual({ clientId: 'mydearjohn.com', scope: ['loveletters'] })
+      expect(result).toEqual({
+        client: {},
+        request: {
+          clientId: 'mydearjohn.com',
+          scope: ['loveletters']
+        }
+      })
     })
   })
 
   describe('#create', () => {
-    const consentBody = {
-      id: '809eea87-6182-4cb4-8d6e-df6d411149a2',
-      clientId: 'hejnar',
-      scope: [ 'stuff', 'things' ],
-      accountId: '809eea87-6182-4cb4-8d6e-df6d411149a2'
-    }
-
-    let connection
+    let consentBody
 
     beforeEach(() => {
-      connection = { query: jest.fn().mockResolvedValue(), end: jest.fn().mockResolvedValue() }
-      postgres.connect.mockResolvedValue(connection)
+      consentBody = {
+        id: '809eea87-6182-4cb4-8d6e-df6d411149a2',
+        clientId: 'hejnar',
+        scope: ['stuff', 'things'],
+        accountId: '809eea87-6182-4cb4-8d6e-df6d411149a2'
+      }
     })
 
     it('fails if input is invalid', async () => {

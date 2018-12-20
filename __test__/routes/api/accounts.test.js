@@ -1,145 +1,117 @@
-const request = require('supertest')
-const app = require(`${process.cwd()}/lib/app`)
-const accountService = require(`${process.cwd()}/lib/services/accounts`)
-jest.mock(`${process.cwd()}/lib/services/accounts`)
-jest.mock(`${process.cwd()}/lib/adapters/pds`)
+const { createApi, generateKeys, sign } = require('../../helpers')
+const app = require('../../../lib/app')
+const postgres = require('../../../lib/adapters/postgres')
+
+jest.mock('../../../lib/adapters/postgres')
+jest.mock('../../../lib/adapters/pds')
 
 describe('routes /api/accounts', () => {
+  let api, accountKeys, connection
+  beforeAll(async () => {
+    accountKeys = await generateKeys('sig')
+  })
+  beforeEach(() => {
+    api = createApi(app)
+    connection = {
+      query: jest.fn().mockResolvedValue({}),
+      end: jest.fn()
+    }
+    postgres.connect.mockResolvedValue(connection)
+  })
+  const payload = (data) => ({
+    data,
+    signature: {
+      data: sign(data, accountKeys.privateKey)
+    }
+  })
   describe('POST: /', () => {
     let account
     beforeEach(() => {
       account = {
-        id: 'einar'
+        publicKey: accountKeys.publicKey,
+        pds: {
+          provider: 'dropbox',
+          access_token: 'some access token'
+        }
       }
     })
-    it('calls accountService.create()', async () => {
-      accountService.create.mockResolvedValue(account)
-      await request(app)
-        .post('/api/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+    it('creates an account', async () => {
+      await api.post('/api/accounts', payload(account))
 
-      expect(accountService.create).toHaveBeenCalledWith(account)
+      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [
+        expect.any(String), // uuid,
+        account.publicKey,
+        account.pds.provider,
+        expect.any(Buffer) // pds access_token
+      ])
     })
     it('returns a 400 error if payload is bad', async () => {
-      const error = Object.assign(new Error('Bad request'), { name: 'ValidationError' })
-      accountService.create.mockRejectedValue(error)
-      const response = await request(app)
-        .post('/api/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+      account.pds = undefined
+      const response = await api.post('/api/accounts', payload(account))
 
       expect(response.status).toEqual(400)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
     })
     it('sets status created if succesful', async () => {
-      accountService.create.mockResolvedValue(account)
-      const response = await request(app)
-        .post('/api/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+      const response = await api.post('/api/accounts', payload(account))
 
       expect(response.status).toEqual(201)
     })
-    it('returns the new account if succesful', async () => {
-      accountService.create.mockResolvedValue(account)
-      const response = await request(app)
-        .post('/api/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+    it('returns the new account id if succesful', async () => {
+      const response = await api.post('/api/accounts', payload(account))
 
-      expect(response.body.data).toEqual(account)
-    })
-    it('returns the account url if succesful', async () => {
-      accountService.create.mockResolvedValue(account)
-      const response = await request(app)
-        .post('/api/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
-
-      expect(response.body.links).toEqual({ self: '/api/accounts/einar' })
-    })
-    it('returns an encoded url', async () => {
-      accountService.create.mockResolvedValue({ id: 'this+id/has-to--be/encoded' })
-      const response = await request(app)
-        .post('/api/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
-
-      expect(response.body.links).toEqual({ self: '/api/accounts/this%2Bid%2Fhas-to--be%2Fencoded' })
+      expect(response.body.data).toEqual({ id: expect.any(String) })
     })
     it('returns a 500 error if service borks', async () => {
       const error = new Error('b0rk')
-      accountService.create.mockRejectedValue(error)
-      const response = await request(app)
-        .post('/api/accounts')
-        .set({ 'Content-Type': 'application/json' })
-        .accept('application/json')
-        .send(account)
+      connection.query.mockRejectedValue(error)
+      const response = await api.post('/api/accounts', payload(account))
 
       expect(response.status).toEqual(500)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
     })
   })
   describe('GET: /:id', () => {
-    let accountId, account, accountResponse, token
+    let accountId, account
     beforeEach(() => {
       accountId = 'abc-123'
       account = {
         id: accountId,
-        publicKey: 'asdsad',
-        pds: {
-          provider: 'dropbox',
-          access_token: 'asdasda'
-        }
+        public_key: 'key',
+        pds_provider: 'dropbox',
+        pds_credentials: Buffer.from('token').toString('base64')
       }
-      accountResponse = {
-        data: account,
-        links: {
-          self: `/api/accounts/${accountId}`
-        }
-      }
-
-      accountService.get.mockResolvedValue(account)
+      connection.query.mockResolvedValue({ rows: [account] })
     })
     it('sets status 404 if account was not found', async () => {
-      accountService.get.mockResolvedValue(undefined)
-      const response = await request(app)
-        .get(`/api/accounts/${accountId}`)
-        .set({ Accept: 'application/json' })
+      connection.query.mockResolvedValue({ rows: [] })
+      const response = await api.get(`/api/accounts/${accountId}`)
 
       expect(response.status).toEqual(404)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')
     })
     it('sets status 200 if account was found', async () => {
-      accountService.get.mockResolvedValue(account)
-      const response = await request(app)
-        .get(`/api/accounts/${accountId}`)
-        .set({ Accept: 'application/json' })
+      const response = await api.get(`/api/accounts/${accountId}`)
       expect(response.status).toEqual(200)
     })
     it('returns account if it was found', async () => {
-      accountService.get.mockResolvedValue(account)
-      const response = await request(app)
-        .get(`/api/accounts/${accountId}`)
-        .set({ Accept: 'application/json' })
-
-      expect(response.body).toEqual(accountResponse)
+      const response = await api.get(`/api/accounts/${accountId}`)
+      expect(response.body).toEqual({
+        data: {
+          id: accountId,
+          publicKey: 'key',
+          pds: {
+            provider: 'dropbox'
+          }
+        },
+        links: {
+          self: '/api/accounts/abc-123'
+        }
+      })
     })
     it('returns a 500 if service borks', async () => {
-      accountService.get.mockRejectedValue(new Error('b0rk'))
-      const response = await request(app)
-        .get(`/api/accounts/${accountId}`)
-        .set({
-          Accept: 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
+      connection.query.mockRejectedValue(new Error('b0rk'))
+      const response = await api.get(`/api/accounts/${accountId}`)
 
       expect(response.status).toEqual(500)
       expect(response.headers['content-type']).toEqual('application/json; charset=utf-8')

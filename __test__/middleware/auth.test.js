@@ -1,31 +1,15 @@
-const request = require('supertest')
 const express = require('express')
 const clientsService = require('../../lib/services/clients')
 const { signed } = require('../../lib/middleware/auth')
-const { generateKeyPair, createSign } = require('crypto')
-const { promisify } = require('util')
 const jwksProvider = require('jwks-provider')
+const { createApi, generateKeys, sign } = require('../helpers')
 
 jest.mock('../../lib/services/clients')
-
-const generate = async (use, kid) => {
-  const { publicKey, privateKey } = await promisify(generateKeyPair)('rsa', {
-    modulusLength: 1024,
-    publicKeyEncoding: { type: 'pkcs1', format: 'pem' },
-    privateKeyEncoding: { type: 'pkcs1', format: 'pem' }
-  })
-  return { use, kid, publicKey, privateKey }
-}
-const sign = (data, privateKey) => {
-  return createSign('SHA256')
-    .update(JSON.stringify(data))
-    .sign(privateKey, 'base64')
-}
 
 describe('/middleware/auth', () => {
   let clientKey
   beforeAll(async () => {
-    clientKey = await generate('sig', 'client_key')
+    clientKey = await generateKeys('sig', 'client_key')
   })
   let app, route, api, cv
   beforeEach(() => {
@@ -34,7 +18,8 @@ describe('/middleware/auth', () => {
       publicKey: clientKey.publicKey,
       displayName: 'My CV',
       description: 'An app',
-      jwksUrl: '/jwks'
+      jwksUrl: '/jwks',
+      eventsUrl: '/events'
     }
     clientsService.get.mockResolvedValue(cv)
 
@@ -42,19 +27,13 @@ describe('/middleware/auth', () => {
     app.use(express.json())
     route = jest.fn((req, res) => res.send({})).mockName('route')
   })
-  const apiClient = (app) => ({
-    post: (route, data) => request(app)
-      .post(route)
-      .set({ 'Content-Type': 'application/json' })
-      .send(data)
-  })
   describe('#signed', () => {
     let payload
     describe('with clientId and kid', () => {
       beforeEach(() => {
         app.post('/', signed({ unsafe: true }), route)
         app.use((err, req, res, next) => res.status(err.status).send(err))
-        api = apiClient(app)
+        api = createApi(app)
 
         payload = {
           data: {
@@ -132,7 +111,7 @@ describe('/middleware/auth', () => {
       describe('verifying through calling jwks endpoint', () => {
         let server, signingKey
         beforeEach(async () => {
-          signingKey = await generate('sig', 'some_other_signing_key')
+          signingKey = await generateKeys('sig', 'some_other_signing_key')
 
           const app = express()
           app.use(express.json())
@@ -157,7 +136,7 @@ describe('/middleware/auth', () => {
           expect(res.status).toEqual(401)
           expect(res.body.message).toEqual('Could not retrieve key')
         })
-        it('works', async () => {
+        it('calls route with data part of payload if signature is verified', async () => {
           const res = await api.post('/', payload)
           expect(res.status).toEqual(200)
           expect(route).toHaveBeenCalled()
@@ -170,7 +149,7 @@ describe('/middleware/auth', () => {
       beforeEach(async () => {
         app.post('/', signed({ unsafe: true, withKey: true }), route)
         app.use((err, req, res, next) => res.status(err.status).send(err))
-        api = apiClient(app)
+        api = createApi(app)
 
         payload = {
           data: {

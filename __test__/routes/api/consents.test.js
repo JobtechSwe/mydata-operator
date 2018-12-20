@@ -3,7 +3,7 @@ const app = require(`${process.cwd()}/lib/app`)
 const consentService = require(`${process.cwd()}/lib/services/consents`)
 jest.mock(`${process.cwd()}/lib/services/consents`)
 
-describe('routes /api/consents', () => {
+xdescribe('routes /api/consents', () => {
   describe('POST: /requests', () => {
     let body
     beforeEach(() => {
