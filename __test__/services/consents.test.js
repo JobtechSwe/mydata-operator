@@ -18,7 +18,7 @@ describe('services/consents', () => {
 
     it('calls redis.set', async () => {
       await createRequest({
-        client_id: 'mycv.com',
+        clientId: 'mycv.com',
         scope: ['foo', 'bar']
       })
 
@@ -29,7 +29,7 @@ describe('services/consents', () => {
       redis.set.mockResolvedValueOnce('not-OK')
 
       await createRequest({
-        client_id: 'mycv.com',
+        clientId: 'mycv.com',
         scope: ['foo', 'bar']
       })
 
@@ -40,18 +40,18 @@ describe('services/consents', () => {
 
   describe('#getRequest', () => {
     it('returns an object', async () => {
-      redis.get.mockResolvedValue('{"client_id":"mydearjohn.com","scope":["loveletters"]}')
+      redis.get.mockResolvedValue('{"clientId":"mydearjohn.com","scope":["loveletters"]}')
 
       const result = await getRequest('5678')
 
-      expect(result).toEqual({ client_id: 'mydearjohn.com', scope: ['loveletters'] })
+      expect(result).toEqual({ clientId: 'mydearjohn.com', scope: ['loveletters'] })
     })
   })
 
   describe('#create', () => {
     const consentBody = {
       id: '809eea87-6182-4cb4-8d6e-df6d411149a2',
-      client_id: 'hejnar',
+      clientId: 'hejnar',
       scope: [ 'stuff', 'things' ],
       accountId: '809eea87-6182-4cb4-8d6e-df6d411149a2'
     }

@@ -8,7 +8,7 @@ describe('routes /api/consents', () => {
     let body
     beforeEach(() => {
       body = {
-        client_id: 'mycv.com',
+        clientId: 'mycv.com',
         scope: ['foo', 'bar']
       }
     })
@@ -23,7 +23,7 @@ describe('routes /api/consents', () => {
 
   describe('GET: /requests/:id', () => {
     const consentRequestBody = {
-      client_id: 'mycv.com',
+      clientId: 'mycv.com',
       scope: ['foo', 'bar']
     }
 
@@ -59,7 +59,7 @@ describe('routes /api/consents', () => {
 
   describe('POST: /', () => {
     const consent = {
-      client_id: 'mycv.com',
+      clientId: 'mycv.com',
       scope: 'I want it all and I want it now'
     }
 

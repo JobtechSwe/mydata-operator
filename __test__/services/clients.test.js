@@ -46,7 +46,7 @@ describe('services/clients', () => {
     beforeEach(() => {
       connection.query.mockResolvedValue({
         rows: [{
-          client_id: 'mycv.example',
+          clientId: 'mycv.example',
           display_name: 'mycv',
           description: 'this is the best app there is',
           jwks_url: '/jwks',
