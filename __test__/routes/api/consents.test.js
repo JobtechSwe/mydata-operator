@@ -1,6 +1,4 @@
-const request = require('supertest')
 const app = require('../../../lib/app')
-const consentService = require('../../../lib/services/consents')
 const clientService = require('../../../lib/services/clients')
 const redis = require('../../../lib/adapters/redis')
 const { createApi, generateKeys, sign } = require('../../helpers')
@@ -11,12 +9,16 @@ describe('routes /api/consents', () => {
   let clientKeys, api, cv
   beforeAll(async () => {
     clientKeys = await generateKeys('sig', 'client_key')
-    api = createApi(app)
   })
   beforeEach(() => {
+    api = createApi(app)
     cv = {
       clientId: 'cv.work',
-      publicKey: clientKeys.publicKey
+      publicKey: clientKeys.publicKey,
+      jwksUrl: '/jwks',
+      eventsUrl: '/events',
+      displayName: 'My CV',
+      description: 'An app for your CV online'
     }
     clientService.get.mockResolvedValue(cv)
     redis.set.mockResolvedValue('OK')
@@ -34,6 +36,7 @@ describe('routes /api/consents', () => {
     beforeEach(() => {
       data = {
         clientId: 'cv.work',
+        kid: 'encryption-key-id',
         scope: [
           { area: 'experience', reason: 'För att kunna bygga ditt CV' },
           { area: 'education', reason: 'För att kunna bygga ditt CV' },
@@ -44,55 +47,76 @@ describe('routes /api/consents', () => {
     })
     it('throws a 400 if clientId is missing', async () => {
       data.clientId = undefined
-      const res = await api.post('/api/consents/requests', payload(data))
-      expect(res.status).toEqual(400)
+      const response = await api.post('/api/consents/requests', payload(data))
+      expect(response.status).toEqual(400)
     })
-    xit('throws a 400 if scope is missing', async () => {
+    it('throws a 400 if no encryption kid is specified', async () => {
+      data.kid = undefined
+      const response = await api.post('/api/consents/requests', payload(data))
+      expect(response.status).toEqual(400)
+    })
+    it('throws a 400 if scope is missing', async () => {
       data.scope = undefined
-      const res = await api.post('/api/consents/requests', payload(data))
-      expect(res.status).toEqual(400)
+      const response = await api.post('/api/consents/requests', payload(data))
+      expect(response.status).toEqual(400)
     })
-    xit('throws a 400 if scope is empty', async () => {
+    it('throws a 400 if scope is empty', async () => {
       data.scope = []
-      const res = await api.post('/api/consents/requests', payload(data))
-      expect(res.status).toEqual(400)
+      const response = await api.post('/api/consents/requests', payload(data))
+      expect(response.status).toEqual(400)
     })
-    xit('saves consent request to redis if it validates', async () => {
+    it('saves consent request to redis if it validates', async () => {
       await api.post('/api/consents/requests', payload(data))
-      expect(redis.set).toHaveBeenCalledWith('')
+      expect(redis.set).toHaveBeenCalledWith(expect.stringMatching(/^consentRequest:*/), expect.any(String), 'NX', 'EX', 3600)
     })
   })
 
-  xdescribe('GET: /requests/:id', () => {
-    const consentRequestBody = {
-      clientId: 'mycv.com',
-      scope: ['foo', 'bar']
-    }
+  describe('GET: /requests/:id', () => {
+    let consentRequest
+    beforeEach(() => {
+      consentRequest = {
+        clientId: 'cv.work',
+        kid: 'encryption-key-id',
+        scope: [
+          { area: 'experience', reason: 'För att kunna bygga ditt CV' },
+          { area: 'education', reason: 'För att kunna bygga ditt CV' },
+          { area: 'languages', reason: 'För att kunna bygga ditt CV' },
+          { namespace: 'personal', area: 'info', reason: 'För att kunna göra ditt CV mer personligt' }
+        ]
+      }
+      redis.get.mockResolvedValue('')
+    })
 
-    it('calls consentService.getRequest()', async () => {
+    it('gets request from redis', async () => {
       const id = '1234'
-      consentService.getRequest.mockResolvedValue(consentRequestBody)
 
-      await request(app).get(`/api/consents/requests/${id}`)
+      await api.get(`/api/consents/requests/${id}`)
 
-      expect(consentService.getRequest).toHaveBeenCalledWith(id)
+      expect(redis.get).toHaveBeenCalledWith(`consentRequest:${id}`)
     })
 
     it('should return 200 with data', async () => {
       const id = '1234'
-      consentService.getRequest.mockResolvedValue(consentRequestBody)
+      redis.get.mockResolvedValue(JSON.stringify(consentRequest))
 
-      const response = await request(app).get(`/api/consents/requests/${id}`)
+      const response = await api.get(`/api/consents/requests/${id}`)
 
       expect(response.status).toBe(200)
-      expect(response.body).toEqual({ data: consentRequestBody })
+      expect(response.body).toEqual({
+        data: {
+          ...consentRequest,
+          jwksUrl: '/jwks',
+          displayName: 'My CV',
+          description: 'An app for your CV online'
+        }
+      })
     })
 
     it('should return 404 without data', async () => {
-      const id = '1234'
-      consentService.getRequest.mockResolvedValue(null)
+      redis.get.mockResolvedValue(null)
 
-      const response = await request(app).get(`/api/consents/requests/${id}`)
+      const id = '1234'
+      const response = await api.get(`/api/consents/requests/${id}`)
 
       expect(response.status).toBe(404)
       expect(response.body).toEqual({})
@@ -108,9 +132,7 @@ describe('routes /api/consents', () => {
     it('should call the consent service', async () => {
       consentService.create.mockResolvedValue()
 
-      await request(app)
-        .post('/api/consents')
-        .send(consent)
+      await api.post('/api/consents', consent)
 
       expect(consentService.create).toBeCalledTimes(1)
       expect(consentService.create).toBeCalledWith(consent)
@@ -121,9 +143,7 @@ describe('routes /api/consents', () => {
       err.name = 'ValidationError'
       consentService.create.mockRejectedValue(err)
 
-      const response = await request(app)
-        .post('/api/consents')
-        .send(consent)
+      const response = await api.post('/api/consents', consent)
 
       expect(response.status).toBe(400)
     })
@@ -132,9 +152,7 @@ describe('routes /api/consents', () => {
       const err = new Error('asdads')
       consentService.create.mockRejectedValue(err)
 
-      const response = await request(app)
-        .post('/api/consents')
-        .send(consent)
+      const response = await api.post('/api/consents', consent)
 
       expect(response.status).toBe(500)
     })
