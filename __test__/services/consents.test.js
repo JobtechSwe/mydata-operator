@@ -6,7 +6,7 @@ jest.mock('../../lib/adapters/redis')
 jest.mock('../../lib/adapters/postgres')
 jest.mock('axios')
 
-describe('services/consents', () => {
+xdescribe('services/consents', () => {
   let connection
   beforeEach(() => {
     redis.set.mockResolvedValue('OK')

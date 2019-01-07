@@ -11,18 +11,15 @@ const createApi = (app) => {
     post: (url, data) => api.post(url)
       .set({ 'Content-Type': 'application/json' })
       .accept('application/json')
-      .send(data)
-      .set({ Accept: 'application/json' }),
+      .send(data),
     put: (url, data) => api.put(url)
       .set({ 'Content-Type': 'application/json' })
       .accept('application/json')
-      .send(data)
-      .set({ Accept: 'application/json' }),
+      .send(data),
     patch: (url, data) => api.patch(url)
       .set({ 'Content-Type': 'application/json' })
       .accept('application/json')
-      .send(data)
-      .set({ Accept: 'application/json' }),
+      .send(data),
     del: (url) => api
       .del(url)
       .set({ Accept: 'application/json' }),
