@@ -72,18 +72,32 @@ describe('routes /api/consents', () => {
   })
 
   describe('GET: /requests/:id', () => {
-    let consentRequest
+    let consentRequest, signature
     beforeEach(() => {
       consentRequest = {
         clientId: 'cv.work',
         kid: 'encryption-key-id',
+        expiry: 123143234,
         scope: [
-          { area: 'experience', reason: 'För att kunna bygga ditt CV' },
-          { area: 'education', reason: 'För att kunna bygga ditt CV' },
-          { area: 'languages', reason: 'För att kunna bygga ditt CV' },
-          { namespace: 'personal', area: 'info', reason: 'För att kunna göra ditt CV mer personligt' }
+          { domain: 'cv.work', area: 'experience', purpose: 'För att kunna bygga ditt CV', description: 'this data contains....', permissions: ['write'], lawfulBasis: 'CONSENT', required: true },
+          { domain: 'cv.work', area: 'education', purpose: 'För att kunna bygga ditt CV', description: 'this data contains....', permissions: ['write'], lawfulBasis: 'CONSENT', required: true },
+          { domain: 'cv.work', area: 'languages', purpose: 'För att kunna bygga ditt CV', description: 'this data contains....', permissions: ['write'], lawfulBasis: 'CONSENT', required: true }
         ]
       }
+      signature = {
+        client: {
+          clientId: 'cv.work',
+          jwksUrl: '/jwks',
+          eventsUrl: '/events',
+          displayName: 'CV',
+          description: 'This is Sparta',
+          publicKey: 'RSA etc'
+        },
+        data: 'some-signature',
+        key: 'RSA etc',
+        kid: 'client_key'
+      }
+
       redis.get.mockResolvedValue('')
     })
 
@@ -97,17 +111,21 @@ describe('routes /api/consents', () => {
 
     it('should return 200 with data', async () => {
       const id = '1234'
-      redis.get.mockResolvedValue(JSON.stringify(consentRequest))
+      redis.get.mockResolvedValue(JSON.stringify({ body: consentRequest, signature }))
 
       const response = await api.get(`/api/consents/requests/${id}`)
 
       expect(response.status).toBe(200)
       expect(response.body).toEqual({
-        data: {
-          ...consentRequest,
+        data: consentRequest,
+        signature: {
+          kid: 'client_key',
+          data: 'some-signature'
+        },
+        client: {
           jwksUrl: '/jwks',
-          displayName: 'My CV',
-          description: 'An app for your CV online'
+          displayName: 'CV',
+          description: 'This is Sparta'
         }
       })
     })
@@ -120,41 +138,6 @@ describe('routes /api/consents', () => {
 
       expect(response.status).toBe(404)
       expect(response.body).toEqual({})
-    })
-  })
-
-  xdescribe('POST: /', () => {
-    const consent = {
-      clientId: 'mycv.com',
-      scope: 'I want it all and I want it now'
-    }
-
-    it('should call the consent service', async () => {
-      consentService.create.mockResolvedValue()
-
-      await api.post('/api/consents', consent)
-
-      expect(consentService.create).toBeCalledTimes(1)
-      expect(consentService.create).toBeCalledWith(consent)
-    })
-
-    it('returns 400 if service throws ValidationError', async () => {
-      const err = new Error('asdads')
-      err.name = 'ValidationError'
-      consentService.create.mockRejectedValue(err)
-
-      const response = await api.post('/api/consents', consent)
-
-      expect(response.status).toBe(400)
-    })
-
-    it('returns 500 if service throws other error', async () => {
-      const err = new Error('asdads')
-      consentService.create.mockRejectedValue(err)
-
-      const response = await api.post('/api/consents', consent)
-
-      expect(response.status).toBe(500)
     })
   })
 })
