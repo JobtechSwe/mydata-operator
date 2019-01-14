@@ -45,11 +45,12 @@ describe('/middleware/auth', () => {
             foo: 'bar'
           },
           signature: {
+            alg: 'RSA-SHA256',
             data: '',
             kid: 'client_key'
           }
         }
-        payload.signature.data = sign(payload.data, clientKey.privateKey)
+        payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
       })
       it('gives a validation error if data and signature are not present', async () => {
         const res = await api.post('/unsafe', {})
@@ -113,6 +114,13 @@ describe('/middleware/auth', () => {
         expect(res.status).toEqual(403)
         expect(res.body.message).toEqual('Invalid signature')
       })
+      it('throws 403 if algorithm is not allowed', async () => {
+        payload.signature.alg = 'md5'
+        const res = await api.post('/unsafe', payload)
+        expect(route).not.toBeCalled()
+        expect(res.status).toEqual(403)
+        expect(res.body.message).toEqual('Invalid algorithm')
+      })
       it('calls route with data part of payload if signature is verified', async () => {
         await api.post('/unsafe', payload)
         expect(route).toHaveBeenCalled()
@@ -133,7 +141,7 @@ describe('/middleware/auth', () => {
             server = app.listen(() => {
               payload.data.clientId = cv.clientId = `localhost:${server.address().port}`
               payload.signature.kid = signingKey.kid
-              payload.signature.data = sign(payload.data, signingKey.privateKey)
+              payload.signature.data = sign(payload.signature.alg, payload.data, signingKey.privateKey)
               resolve()
             })
           })
@@ -182,7 +190,7 @@ describe('/middleware/auth', () => {
             payload.data.clientId = `localhost:${server.address().port}`
             payload.data.jwksUrl = jwksUrl
             payload.signature.kid = 'client_key'
-            payload.signature.data = sign(payload.data, clientKey.privateKey)
+            payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
             resolve()
           })
         })
@@ -210,14 +218,15 @@ describe('/middleware/auth', () => {
       beforeEach(async () => {
         payload = {
           data: {
-            publicKey: clientKey.publicKey,
+            publicKey: Buffer.from(clientKey.publicKey).toString('base64'),
             foo: 'bar'
           },
           signature: {
+            alg: 'RSA-SHA512',
             data: ''
           }
         }
-        payload.signature.data = sign(payload.data, clientKey.privateKey)
+        payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
       })
       it('gives a validation error if data and signature are not present', async () => {
         const res = await api.post('/accounts', {})
@@ -260,11 +269,22 @@ describe('/middleware/auth', () => {
         expect(res.status).toEqual(403)
         expect(res.body.message).toEqual('Invalid signature')
       })
-      it('calls route with data part of payload if signature is verified', async () => {
+      it('calls route with data part of payload if public key signature is verified', async () => {
         await api.post('/accounts', payload)
         expect(route).toHaveBeenCalled()
         const [[req]] = route.mock.calls
         expect(req.body).toEqual(payload.data)
+      })
+      it('calls route with signature if verified', async () => {
+        await api.post('/accounts', payload)
+        expect(route).toHaveBeenCalled()
+        const [[req]] = route.mock.calls
+        expect(req.signature).toEqual({
+          client: undefined,
+          alg: 'RSA-SHA512',
+          data: payload.signature.data,
+          key: clientKey.publicKey
+        })
       })
     })
   })

@@ -38,8 +38,8 @@ const generateKeys = async (use, kid) => {
   return { use, kid, publicKey, privateKey }
 }
 
-const sign = (data, privateKey) => {
-  return createSign('SHA256')
+const sign = (alg, data, privateKey) => {
+  return createSign(alg)
     .update(JSON.stringify(data))
     .sign(privateKey, 'base64')
 }
