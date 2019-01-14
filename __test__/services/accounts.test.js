@@ -10,16 +10,18 @@ describe('services/accounts', () => {
     postgres.connect.mockResolvedValue(connection)
   })
   describe('#create', () => {
-    const account = {
-      firstName: 'Einar',
-      lastName: 'Persson',
-      publicKey: '-----BEGIN RSA PUBLIC KEY----- ...',
-      pds: {
-        provider: 'dropbox',
-        access_token: 'asdasdasd'
+    let account
+    beforeEach(() => {
+      account = {
+        firstName: 'Einar',
+        lastName: 'Persson',
+        publicKey: Buffer.from('-----BEGIN RSA PUBLIC KEY----- ...').toString('base64'),
+        pds: {
+          provider: 'dropbox',
+          access_token: 'asdasdasd'
+        }
       }
-    }
-
+    })
     it('fails if the input is invalid', async () => {
       await expect(create({})).rejects.toThrow()
     })
@@ -27,6 +29,15 @@ describe('services/accounts', () => {
       await create(account)
       expect(postgres.connect).toHaveBeenCalled()
       expect(connection.query).toHaveBeenCalled()
+    })
+    it('saves to db with correct parameters', async () => {
+      await create(account)
+      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [
+        expect.any(String), // uuid
+        '-----BEGIN RSA PUBLIC KEY----- ...', // public key
+        account.pds.provider,
+        expect.any(Buffer)
+      ])
     })
     it('returns the account id', async () => {
       const result = await create(account)

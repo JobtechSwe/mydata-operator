@@ -26,8 +26,9 @@ describe('routes /api/consents', () => {
   const payload = (data) => ({
     data,
     signature: {
+      alg: 'RSA-SHA512',
       kid: 'client_key',
-      data: sign(data, clientKeys.privateKey)
+      data: sign('RSA-SHA512', data, clientKeys.privateKey)
     }
   })
 

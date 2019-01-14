@@ -21,14 +21,15 @@ describe('routes /api/accounts', () => {
   const payload = (data) => ({
     data,
     signature: {
-      data: sign(data, accountKeys.privateKey)
+      alg: 'RSA-SHA512',
+      data: sign('RSA-SHA512', data, accountKeys.privateKey)
     }
   })
   describe('POST: /', () => {
     let account
     beforeEach(() => {
       account = {
-        publicKey: accountKeys.publicKey,
+        publicKey: Buffer.from(accountKeys.publicKey).toString('base64'),
         pds: {
           provider: 'dropbox',
           access_token: 'some access token'
@@ -40,7 +41,7 @@ describe('routes /api/accounts', () => {
 
       expect(connection.query).toHaveBeenCalledWith(expect.any(String), [
         expect.any(String), // uuid,
-        account.publicKey,
+        accountKeys.publicKey,
         account.pds.provider,
         expect.any(Buffer) // pds access_token
       ])
