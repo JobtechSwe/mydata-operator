@@ -67,8 +67,20 @@ describe('routes /api/consents', () => {
       expect(response.status).toEqual(400)
     })
     it('saves consent request to redis if it validates', async () => {
-      await api.post('/api/consents/requests', payload(data))
-      expect(redis.set).toHaveBeenCalledWith(expect.stringMatching(/^consentRequest:*/), expect.any(String), 'NX', 'EX', 3600)
+      const reqPayload = payload(data)
+      await api.post('/api/consents/requests', reqPayload)
+
+      const url = expect.stringMatching(/^consentRequest:*/)
+      const savedRequest = JSON.stringify({
+        data,
+        signature: {
+          ...reqPayload.signature,
+          client: cv,
+          key: clientKeys.publicKey
+        }
+      })
+
+      expect(redis.set).toHaveBeenCalledWith(url, savedRequest, 'NX', 'EX', 3600)
     })
   })
 
@@ -112,7 +124,7 @@ describe('routes /api/consents', () => {
 
     it('should return 200 with data', async () => {
       const id = '1234'
-      redis.get.mockResolvedValue(JSON.stringify({ body: consentRequest, signature }))
+      redis.get.mockResolvedValue(JSON.stringify({ data: consentRequest, signature }))
 
       const response = await api.get(`/api/consents/requests/${id}`)
 
