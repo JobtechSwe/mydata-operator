@@ -2,11 +2,13 @@ const { createRequest, getRequest, create, get } = require('../../lib/services/c
 const redis = require('../../lib/adapters/redis')
 const postgres = require('../../lib/adapters/postgres')
 const axios = require('axios')
+const accountsService = require('../../lib/services/accounts')
 jest.mock('../../lib/adapters/redis')
 jest.mock('../../lib/adapters/postgres')
 jest.mock('axios')
+jest.mock('../../lib/services/accounts')
 
-xdescribe('services/consents', () => {
+describe('services/consents', () => {
   let connection
   beforeEach(() => {
     redis.set.mockResolvedValue('OK')
@@ -17,7 +19,7 @@ xdescribe('services/consents', () => {
     postgres.connect.mockResolvedValue(connection)
   })
 
-  describe('#createRequest', () => {
+  xdescribe('#createRequest', () => {
     it('fails if the input is invalid', async () => {
       await expect(createRequest({})).rejects.toThrow()
     })
@@ -44,7 +46,7 @@ xdescribe('services/consents', () => {
     })
   })
 
-  describe('#getRequest', () => {
+  xdescribe('#getRequest', () => {
     it('returns an object', async () => {
       redis.get.mockResolvedValue('{"clientId":"mydearjohn.com","scope":["loveletters"]}')
 
@@ -65,27 +67,71 @@ xdescribe('services/consents', () => {
 
     beforeEach(() => {
       consentBody = {
-        id: '809eea87-6182-4cb4-8d6e-df6d411149a2',
-        clientId: 'hejnar',
-        scope: ['stuff', 'things'],
-        accountId: '809eea87-6182-4cb4-8d6e-df6d411149a2'
+        consentId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
+        consentEncryptionKey: 'PGJhc2U2NC1lbmNvZGVkLXB1YmxpYy1rZXk+',
+        accountId: 'b60c5a93-ed93-41bd-8f77-176c564fb976',
+        scope: [
+          { domain: 'http://cv.com', area: 'education', clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==' }
+        ]
       }
+
+      accountsService.get.mockResolvedValue({ publicKey: '<user-public-key>' })
+
+      redis.get.mockResolvedValue(`{"id":"809eea87-6182-4cb4-8d6e-df6d411149a2","clientId":"https://mycv.example.com"}`)
     })
 
     it('fails if input is invalid', async () => {
       await expect(create({ blaj: 'asdasd' })).rejects.toThrow()
     })
 
-    it('connects and writes to db', async () => {
+    it('insert consent to db', async () => {
       await create(consentBody)
-      expect(postgres.connect).toHaveBeenCalled()
-      expect(connection.query).toHaveBeenCalled()
+      expect(postgres.connect).toHaveBeenCalledTimes(1)
+      expect(connection.query).toHaveBeenCalledTimes(1)
+      expect(connection.query).toBeCalledWith(
+        expect.any(String),
+        [
+          consentBody.consentId,
+          consentBody.accountId,
+          'https://mycv.example.com',
+          JSON.stringify(consentBody.scope)
+        ])
+      expect(connection.end).toBeCalledTimes(1)
+    })
+
+    it('gets user public key from accountsService', async () => {
+      await create(consentBody)
+
+      expect(accountsService.get).toHaveBeenCalledTimes(1)
+      expect(accountsService.get).toHaveBeenCalledWith('b60c5a93-ed93-41bd-8f77-176c564fb976')
     })
 
     it('posts to client', async () => {
       await create(consentBody)
 
       expect(axios.post).toBeCalledTimes(1)
+    })
+
+    it('gets the clientId from redis', async () => {
+      await create(consentBody)
+
+      expect(redis.get).toBeCalledTimes(1)
+      expect(redis.get).toBeCalledWith('consentRequest:809eea87-6182-4cb4-8d6e-df6d411149a2')
+    })
+
+    it('posts the right stuff to the client', async () => {
+      await create(consentBody)
+
+      expect(axios.post).toBeCalledWith('https://mycv.example.com/events', {
+        type: 'CONSENT_APPROVED',
+        payload: {
+          consentId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
+          scope: [
+            { domain: 'http://cv.com', area: 'education', clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==' }
+          ],
+          userPublicKey: '<user-public-key>'
+        }
+      })
     })
   })
 
