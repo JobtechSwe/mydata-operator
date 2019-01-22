@@ -69,20 +69,27 @@ describe('services/consents', () => {
         consentId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
         consentEncryptionKey: 'PGJhc2U2NC1lbmNvZGVkLXB1YmxpYy1rZXk+',
         accountId: 'b60c5a93-ed93-41bd-8f77-176c564fb976',
-        accountKey: 'ZnJpZGF5IGZyaWRheSwgZ290dGEgZ2V0IGRvd24gb24gZnJpZGF5',
+        publicKey: 'ZnJpZGF5IGZyaWRheSwgZ290dGEgZ2V0IGRvd24gb24gZnJpZGF5',
+        clientId: 'cv.work',
         scope: [
-          { domain: 'http://cv.com', area: 'education', clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==' }
+          {
+            // clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==',
+            domain: 'http://cv.com',
+            area: 'education',
+            description: 'Stuff',
+            lawfulBasis: 'strength',
+            permissions: ['read'],
+            purpose: 'dominance'
+          }
         ]
       }
-
-      redis.get.mockResolvedValue(`{"id":"809eea87-6182-4cb4-8d6e-df6d411149a2","clientId":"https://mycv.example.com"}`)
     })
 
     it('fails if input is invalid', async () => {
       await expect(create({ blaj: 'asdasd' })).rejects.toThrow()
     })
 
-    it('insert consent to db', async () => {
+    it('inserts consent into db', async () => {
       await create(consentBody)
       expect(postgres.connect).toHaveBeenCalledTimes(1)
       expect(connection.query).toHaveBeenCalledTimes(1)
@@ -91,7 +98,7 @@ describe('services/consents', () => {
         [
           consentBody.consentId,
           consentBody.accountId,
-          'https://mycv.example.com',
+          'cv.work',
           JSON.stringify(consentBody.scope)
         ])
       expect(connection.end).toBeCalledTimes(1)
@@ -103,24 +110,25 @@ describe('services/consents', () => {
       expect(axios.post).toBeCalledTimes(1)
     })
 
-    it('gets the clientId from redis', async () => {
-      await create(consentBody)
-
-      expect(redis.get).toBeCalledTimes(1)
-      expect(redis.get).toBeCalledWith('consentRequest:809eea87-6182-4cb4-8d6e-df6d411149a2')
-    })
-
     it('posts the right stuff to the client', async () => {
       await create(consentBody)
 
-      expect(axios.post).toBeCalledWith('https://mycv.example.com/events', {
+      expect(axios.post).toBeCalledWith('http://cv.work/events', {
         type: 'CONSENT_APPROVED',
         payload: {
           consentId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
           scope: [
-            { domain: 'http://cv.com', area: 'education', clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==' }
+            {
+              // clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==',
+              domain: 'http://cv.com',
+              area: 'education',
+              description: 'Stuff',
+              lawfulBasis: 'strength',
+              permissions: ['read'],
+              purpose: 'dominance'
+            }
           ],
-          accountKey: 'ZnJpZGF5IGZyaWRheSwgZ290dGEgZ2V0IGRvd24gb24gZnJpZGF5'
+          publicKey: 'ZnJpZGF5IGZyaWRheSwgZ290dGEgZ2V0IGRvd24gb24gZnJpZGF5'
         }
       })
     })
