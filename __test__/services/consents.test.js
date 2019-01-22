@@ -2,7 +2,6 @@ const { createRequest, getRequest, create, get } = require('../../lib/services/c
 const redis = require('../../lib/adapters/redis')
 const postgres = require('../../lib/adapters/postgres')
 const axios = require('axios')
-const accountsService = require('../../lib/services/accounts')
 jest.mock('../../lib/adapters/redis')
 jest.mock('../../lib/adapters/postgres')
 jest.mock('axios')
@@ -70,12 +69,11 @@ describe('services/consents', () => {
         consentId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
         consentEncryptionKey: 'PGJhc2U2NC1lbmNvZGVkLXB1YmxpYy1rZXk+',
         accountId: 'b60c5a93-ed93-41bd-8f77-176c564fb976',
+        accountKey: 'ZnJpZGF5IGZyaWRheSwgZ290dGEgZ2V0IGRvd24gb24gZnJpZGF5',
         scope: [
           { domain: 'http://cv.com', area: 'education', clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==' }
         ]
       }
-
-      accountsService.get.mockResolvedValue({ publicKey: '<user-public-key>' })
 
       redis.get.mockResolvedValue(`{"id":"809eea87-6182-4cb4-8d6e-df6d411149a2","clientId":"https://mycv.example.com"}`)
     })
@@ -97,13 +95,6 @@ describe('services/consents', () => {
           JSON.stringify(consentBody.scope)
         ])
       expect(connection.end).toBeCalledTimes(1)
-    })
-
-    it('gets user public key from accountsService', async () => {
-      await create(consentBody)
-
-      expect(accountsService.get).toHaveBeenCalledTimes(1)
-      expect(accountsService.get).toHaveBeenCalledWith('b60c5a93-ed93-41bd-8f77-176c564fb976')
     })
 
     it('posts to client', async () => {
@@ -129,7 +120,7 @@ describe('services/consents', () => {
           scope: [
             { domain: 'http://cv.com', area: 'education', clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==' }
           ],
-          userPublicKey: '<user-public-key>'
+          accountKey: 'ZnJpZGF5IGZyaWRheSwgZ290dGEgZ2V0IGRvd24gb24gZnJpZGF5'
         }
       })
     })
