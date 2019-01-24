@@ -7,6 +7,8 @@ jest.mock('../../lib/adapters/postgres')
 jest.mock('axios')
 jest.mock('../../lib/services/accounts')
 
+const base64 = (txt) => Buffer.from(txt, 'utf8').toString('base64')
+
 describe('services/consents', () => {
   let connection
   beforeEach(() => {
@@ -66,10 +68,10 @@ describe('services/consents', () => {
 
     beforeEach(() => {
       consentBody = {
-        consentId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
-        consentEncryptionKey: 'PGJhc2U2NC1lbmNvZGVkLXB1YmxpYy1rZXk+',
+        consentRequestId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
+        consentEncryptionKey: base64('-----BEGIN RSA PUBLIC KEY----- consent'),
         accountId: 'b60c5a93-ed93-41bd-8f77-176c564fb976',
-        publicKey: 'ZnJpZGF5IGZyaWRheSwgZ290dGEgZ2V0IGRvd24gb24gZnJpZGF5',
+        publicKey: base64('-----BEGIN RSA PUBLIC KEY----- account'),
         clientId: 'cv.work',
         scope: [
           {
@@ -104,19 +106,13 @@ describe('services/consents', () => {
       expect(connection.end).toBeCalledTimes(1)
     })
 
-    it('posts to client', async () => {
-      await create(consentBody)
-
-      expect(axios.post).toBeCalledTimes(1)
-    })
-
     it('posts the right stuff to the client', async () => {
       await create(consentBody)
 
       expect(axios.post).toBeCalledWith('http://cv.work/events', {
         type: 'CONSENT_APPROVED',
         payload: {
-          consentId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
+          consentRequestId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
           scope: [
             {
               // clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==',
@@ -128,7 +124,7 @@ describe('services/consents', () => {
               purpose: 'dominance'
             }
           ],
-          publicKey: 'ZnJpZGF5IGZyaWRheSwgZ290dGEgZ2V0IGRvd24gb24gZnJpZGF5'
+          publicKey: base64('-----BEGIN RSA PUBLIC KEY----- account')
         }
       })
     })

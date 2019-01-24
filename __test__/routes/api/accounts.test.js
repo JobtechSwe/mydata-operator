@@ -75,7 +75,7 @@ describe('routes /api/accounts', () => {
   describe('GET: /:id', () => {
     let accountId, account
     beforeEach(() => {
-      accountId = 'abc-123'
+      accountId = '2982bf9d-cda1-4a2a-ae1b-189cf7f65673'
       account = {
         id: accountId,
         public_key: 'key',
@@ -106,7 +106,7 @@ describe('routes /api/accounts', () => {
           }
         },
         links: {
-          self: '/api/accounts/abc-123'
+          self: `/api/accounts/${accountId}`
         }
       })
     })

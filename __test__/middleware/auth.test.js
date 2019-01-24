@@ -111,15 +111,15 @@ describe('/middleware/auth', () => {
         payload.signature.data = 'bork'
         const res = await api.post('/unsafe', payload)
         expect(route).not.toBeCalled()
-        expect(res.status).toEqual(403)
         expect(res.body.message).toEqual('Invalid signature')
+        expect(res.status).toEqual(403)
       })
       it('throws 403 if algorithm is not allowed', async () => {
         payload.signature.alg = 'md5'
         const res = await api.post('/unsafe', payload)
         expect(route).not.toBeCalled()
-        expect(res.status).toEqual(403)
         expect(res.body.message).toEqual('Invalid algorithm')
+        expect(res.status).toEqual(403)
       })
       it('calls route with data part of payload if signature is verified', async () => {
         await api.post('/unsafe', payload)
