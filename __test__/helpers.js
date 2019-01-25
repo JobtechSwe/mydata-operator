@@ -44,4 +44,15 @@ const sign = (alg, data, privateKey) => {
     .sign(privateKey, 'base64')
 }
 
-module.exports = { createApi, generateKeys, sign }
+const payload = (data, keyPair) => {
+  return {
+    data,
+    signature: {
+      alg: 'RSA-SHA512',
+      kid: keyPair.kid,
+      data: sign('RSA-SHA512', data, keyPair.privateKey)
+    }
+  }
+}
+
+module.exports = { createApi, generateKeys, sign, payload }

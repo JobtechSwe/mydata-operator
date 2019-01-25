@@ -15,7 +15,7 @@ describe('services/accounts', () => {
       account = {
         firstName: 'Einar',
         lastName: 'Persson',
-        publicKey: Buffer.from('-----BEGIN RSA PUBLIC KEY----- ...').toString('base64'),
+        accountKey: Buffer.from('-----BEGIN RSA PUBLIC KEY----- ...').toString('base64'),
         pds: {
           provider: 'dropbox',
           access_token: 'asdasdasd'

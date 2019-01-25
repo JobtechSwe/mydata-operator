@@ -1,22 +1,19 @@
 const { create } = require('../../../lib/services/consents')
 const redis = require('../../../lib/adapters/redis')
-const postgres = require('../../../lib/adapters/postgres')
+const postgres = require('../../../__mocks__/pg')
 const axios = require('axios')
 jest.mock('../../../lib/adapters/redis')
-jest.mock('../../../lib/adapters/postgres')
 jest.mock('axios')
 
 const base64 = (txt) => Buffer.from(txt, 'utf8').toString('base64')
 
 describe('services/consents #create', () => {
-  let connection, consentBody
+  let consentBody
   beforeEach(() => {
     redis.set.mockResolvedValue('OK')
-    connection = {
-      query: jest.fn().mockResolvedValue({ rows: [{}] }),
-      end: jest.fn().mockResolvedValue()
-    }
-    postgres.connect.mockResolvedValue(connection)
+  })
+  afterEach(() => {
+    postgres.clearMocks()
   })
 
   beforeEach(() => {
@@ -24,7 +21,7 @@ describe('services/consents #create', () => {
       consentRequestId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
       consentEncryptionKey: base64('-----BEGIN RSA PUBLIC KEY----- consent'),
       accountId: 'b60c5a93-ed93-41bd-8f77-176c564fb976',
-      publicKey: base64('-----BEGIN RSA PUBLIC KEY----- account'),
+      accountKey: base64('-----BEGIN RSA PUBLIC KEY----- account'),
       clientId: 'cv.work',
       scope: [
         {
@@ -39,32 +36,30 @@ describe('services/consents #create', () => {
       ]
     }
   })
-
   it('fails if input is invalid', async () => {
     await expect(create({ blaj: 'asdasd' })).rejects.toThrow()
   })
-
   it('inserts consent into db', async () => {
     await create(consentBody)
-    expect(postgres.connect).toHaveBeenCalledTimes(1)
-    expect(connection.query).toHaveBeenCalledTimes(1)
-    expect(connection.query).toBeCalledWith(
+    expect(postgres.client.query).toHaveBeenCalledTimes(1)
+    expect(postgres.client.query).toBeCalledWith(
       expect.any(String),
       [
-        consentBody.consentId,
+        consentBody.consentRequestId,
+        expect.any(String), // consentId
         consentBody.accountId,
-        'cv.work',
-        JSON.stringify(consentBody.scope)
+        consentBody.clientId,
+        JSON.stringify(consentBody)
       ])
-    expect(connection.end).toBeCalledTimes(1)
+    expect(postgres.client.end).toBeCalledTimes(1)
   })
-
   it('posts the right stuff to the client', async () => {
     await create(consentBody)
 
     expect(axios.post).toBeCalledWith('http://cv.work/events', {
       type: 'CONSENT_APPROVED',
       payload: {
+        consentId: expect.any(String),
         consentRequestId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
         scope: [
           {
@@ -77,7 +72,7 @@ describe('services/consents #create', () => {
             purpose: 'dominance'
           }
         ],
-        publicKey: base64('-----BEGIN RSA PUBLIC KEY----- account')
+        accountKey: base64('-----BEGIN RSA PUBLIC KEY----- account')
       }
     })
   })

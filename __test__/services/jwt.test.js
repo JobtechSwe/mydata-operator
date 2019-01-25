@@ -12,7 +12,7 @@ describe('services/auth', () => {
       }
     })
     it('creates a token containing account info', () => {
-      let [alg, content, sign] = createToken(account).split('.')
+      let content = createToken(account).split('.')[1]
       content = JSON.parse(Buffer.from(content, 'base64').toString('utf8'))
       expect(content.account).toEqual(account)
     })
