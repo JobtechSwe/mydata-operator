@@ -103,6 +103,7 @@ describe('services/consents #create', () => {
       payload: {
         consentId: expect.any(String),
         consentRequestId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
+        consentEncryptionKeyId: 'http://localhost:4000/jwks/enc_20190115082310',
         scope: [
           {
             // clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==',
