@@ -22,6 +22,7 @@ describe('routes /api/accounts', () => {
     data,
     signature: {
       alg: 'RSA-SHA512',
+      kid: 'account_key',
       data: sign('RSA-SHA512', data, accountKeys.privateKey)
     }
   })
@@ -29,12 +30,18 @@ describe('routes /api/accounts', () => {
     let account
     beforeEach(() => {
       account = {
-        publicKey: Buffer.from(accountKeys.publicKey).toString('base64'),
+        accountKey: Buffer.from(accountKeys.publicKey).toString('base64'),
         pds: {
           provider: 'dropbox',
           access_token: 'some access token'
         }
       }
+    })
+    it('does not throw if payload is valid', async () => {
+      const response = await api.post('/api/accounts', payload(account))
+
+      expect(response.body.details).toBeUndefined()
+      expect(response.status).toBeLessThan(300)
     })
     it('creates an account', async () => {
       await api.post('/api/accounts', payload(account))
@@ -75,10 +82,10 @@ describe('routes /api/accounts', () => {
   describe('GET: /:id', () => {
     let accountId, account
     beforeEach(() => {
-      accountId = 'abc-123'
+      accountId = '2982bf9d-cda1-4a2a-ae1b-189cf7f65673'
       account = {
         id: accountId,
-        public_key: 'key',
+        account_key: 'key',
         pds_provider: 'dropbox',
         pds_credentials: Buffer.from('token').toString('base64')
       }
@@ -100,13 +107,13 @@ describe('routes /api/accounts', () => {
       expect(response.body).toEqual({
         data: {
           id: accountId,
-          publicKey: 'key',
+          accountKey: 'key',
           pds: {
             provider: 'dropbox'
           }
         },
         links: {
-          self: '/api/accounts/abc-123'
+          self: `/api/accounts/${accountId}`
         }
       })
     })

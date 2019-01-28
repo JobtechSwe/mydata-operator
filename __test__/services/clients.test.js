@@ -21,7 +21,7 @@ describe('services/clients', () => {
         description: 'this is the best app there is',
         jwksUrl: '/jwks',
         eventsUrl: '/events',
-        publicKey: 'my-public-key'
+        clientKey: 'my-public-key'
       }
       connection.query.mockResolvedValue({
         rowCount: 1
@@ -39,7 +39,7 @@ describe('services/clients', () => {
         data.description,
         data.jwksUrl,
         data.eventsUrl,
-        data.publicKey
+        data.clientKey
       ])
     })
     it('throws if number of rows affected is not 1', async () => {
@@ -60,7 +60,7 @@ describe('services/clients', () => {
           description: 'this is the best app there is',
           jwks_url: '/jwks',
           events_url: 'events',
-          public_key: 'my-public-key'
+          client_key: 'my-public-key'
         }]
       })
     })
@@ -76,7 +76,7 @@ describe('services/clients', () => {
         description: 'this is the best app there is',
         jwksUrl: '/jwks',
         eventsUrl: 'events',
-        publicKey: 'my-public-key'
+        clientKey: 'my-public-key'
       })
     })
   })

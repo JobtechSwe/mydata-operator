@@ -14,7 +14,7 @@ describe('routes /api/consents', () => {
     api = createApi(app)
     cv = {
       clientId: 'cv.work',
-      publicKey: clientKeys.publicKey,
+      clientKey: clientKeys.publicKey,
       jwksUrl: '/jwks',
       eventsUrl: '/events',
       displayName: 'My CV',
@@ -104,7 +104,7 @@ describe('routes /api/consents', () => {
           eventsUrl: '/events',
           displayName: 'CV',
           description: 'This is Sparta',
-          publicKey: 'RSA etc'
+          clientKey: 'RSA etc'
         },
         data: 'some-signature',
         key: 'RSA etc',

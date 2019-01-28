@@ -15,7 +15,7 @@ describe('/middleware/auth', () => {
   beforeEach(() => {
     cv = {
       clientId: 'mydata.work',
-      publicKey: clientKey.publicKey,
+      clientKey: clientKey.publicKey,
       displayName: 'My CV',
       description: 'An app',
       jwksUrl: '/jwks',
@@ -28,15 +28,16 @@ describe('/middleware/auth', () => {
     app.use(express.json())
     app.post('/unsafe', signed({ unsafe: true }), route)
     app.post('/safe', signed({}), route)
-    app.post('/accounts', signed({ unsafe: true, withKey: true }), route)
+    app.post('/accounts', signed({ unsafe: true, accountKey: true }), route)
+    app.post('/clients', signed({ unsafe: true, clientKey: true }), route)
 
     app.use((err, req, res, next) => res.status(err.status).send(err))
 
     api = createApi(app)
   })
   describe('#signed', () => {
-    let payload
     describe('with clientId and kid', () => {
+      let payload
       beforeEach(() => {
         payload = {
           data: {
@@ -111,15 +112,15 @@ describe('/middleware/auth', () => {
         payload.signature.data = 'bork'
         const res = await api.post('/unsafe', payload)
         expect(route).not.toBeCalled()
-        expect(res.status).toEqual(403)
         expect(res.body.message).toEqual('Invalid signature')
+        expect(res.status).toEqual(403)
       })
       it('throws 403 if algorithm is not allowed', async () => {
         payload.signature.alg = 'md5'
         const res = await api.post('/unsafe', payload)
         expect(route).not.toBeCalled()
-        expect(res.status).toEqual(403)
         expect(res.body.message).toEqual('Invalid algorithm')
+        expect(res.status).toEqual(403)
       })
       it('calls route with data part of payload if signature is verified', async () => {
         await api.post('/unsafe', payload)
@@ -172,8 +173,22 @@ describe('/middleware/auth', () => {
       })
     })
     describe('register client', () => {
-      let server
-      beforeEach(async () => {
+      let server, payload
+      beforeEach(() => {
+        payload = {
+          data: {
+            clientId: 'mydata.work',
+            unsafe: true,
+            foo: 'bar'
+          },
+          signature: {
+            alg: 'RSA-SHA256',
+            data: '',
+            kid: 'client_key'
+          }
+        }
+        payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
+
         // No client exists
         clientsService.get.mockResolvedValue()
 
@@ -214,19 +229,24 @@ describe('/middleware/auth', () => {
         expect(req.signature.client).toEqual(undefined)
       })
     })
-    describe('with publicKey', () => {
+    describe('register account', () => {
+      let accountKey, payload
+      beforeAll(async () => {
+        accountKey = await generateKeys('sig', 'account_key')
+      })
       beforeEach(async () => {
         payload = {
           data: {
-            publicKey: Buffer.from(clientKey.publicKey).toString('base64'),
+            accountKey: Buffer.from(accountKey.publicKey).toString('base64'),
             foo: 'bar'
           },
           signature: {
             alg: 'RSA-SHA512',
+            kid: 'account_key',
             data: ''
           }
         }
-        payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
+        payload.signature.data = sign(payload.signature.alg, payload.data, accountKey.privateKey)
       })
       it('gives a validation error if data and signature are not present', async () => {
         const res = await api.post('/accounts', {})
@@ -248,8 +268,8 @@ describe('/middleware/auth', () => {
         expect(res.status).toEqual(400)
         expect(res.body.name).toEqual('ValidationError')
       })
-      it('throws 400 if data.publicKey is missing', async () => {
-        payload.data.publicKey = undefined
+      it('throws 400 if data.accountKey is missing', async () => {
+        payload.data.accountKey = undefined
         const res = await api.post('/accounts', payload)
         expect(route).not.toBeCalled()
         expect(res.status).toEqual(400)
@@ -266,8 +286,9 @@ describe('/middleware/auth', () => {
         payload.signature.data = 'bork'
         const res = await api.post('/accounts', payload)
         expect(route).not.toBeCalled()
-        expect(res.status).toEqual(403)
+        expect(res.body.details).toBeUndefined()
         expect(res.body.message).toEqual('Invalid signature')
+        expect(res.status).toEqual(403)
       })
       it('calls route with data part of payload if public key signature is verified', async () => {
         await api.post('/accounts', payload)
@@ -283,7 +304,8 @@ describe('/middleware/auth', () => {
           client: undefined,
           alg: 'RSA-SHA512',
           data: payload.signature.data,
-          key: clientKey.publicKey
+          key: accountKey.publicKey,
+          kid: 'account_key'
         })
       })
     })

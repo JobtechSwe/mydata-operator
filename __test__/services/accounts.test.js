@@ -15,7 +15,7 @@ describe('services/accounts', () => {
       account = {
         firstName: 'Einar',
         lastName: 'Persson',
-        publicKey: Buffer.from('-----BEGIN RSA PUBLIC KEY----- ...').toString('base64'),
+        accountKey: Buffer.from('-----BEGIN RSA PUBLIC KEY----- ...').toString('base64'),
         pds: {
           provider: 'dropbox',
           access_token: 'asdasdasd'
@@ -59,31 +59,32 @@ describe('services/accounts', () => {
     })
   })
   describe('#get', () => {
+    let accountId
+    beforeEach(() => {
+      accountId = '2982bf9d-cda1-4a2a-ae1b-189cf7f65673'
+    })
     it('fails if the input is invalid', async () => {
       await expect(get()).rejects.toThrow()
     })
     it('gets from postgres by id', async () => {
-      const id = 'abc-123'
-      connection.query.mockResolvedValue({ rows: [{ id }] })
-      await get(id)
-      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [id])
+      connection.query.mockResolvedValue({ rows: [{ id: accountId }] })
+      await get(accountId)
+      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [accountId])
     })
     it('returns the account', async () => {
-      const id = 'abc-123'
-      connection.query.mockResolvedValue({ rows: [{ id }] })
-      const result = await get(id)
-      expect(result).toEqual({ id })
+      connection.query.mockResolvedValue({ rows: [{ id: accountId }] })
+      const result = await get(accountId)
+      expect(result).toEqual({ id: accountId })
     })
     it('returns pdsCredentials as base64', async () => {
-      const id = 'abc-123'
       const pdsCredentials = {
         0: 0x7b,
         1: 0x7d
       }
       const credentialsString = Buffer.from([0x7b, 0x7d]).toString('base64')
-      connection.query.mockResolvedValue({ rows: [{ id, pdsCredentials }] })
-      const result = await get(id)
-      expect(result).toEqual({ id, pdsCredentials: credentialsString })
+      connection.query.mockResolvedValue({ rows: [{ id: accountId, pdsCredentials }] })
+      const result = await get(accountId)
+      expect(result).toEqual({ id: accountId, pdsCredentials: credentialsString })
     })
   })
 })
