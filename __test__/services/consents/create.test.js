@@ -105,7 +105,7 @@ describe('services/consents #create', () => {
       type: 'CONSENT_APPROVED',
       payload: {
         consentId: expect.any(String),
-        jwt: expect.any(String),
+        accessToken: expect.any(String),
         consentRequestId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
         consentEncryptionKeyId: 'http://localhost:4000/jwks/enc_20190115082310',
         scope: [
