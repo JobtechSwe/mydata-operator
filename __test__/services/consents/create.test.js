@@ -2,6 +2,8 @@ const { create } = require('../../../lib/services/consents')
 const redis = require('../../../lib/adapters/redis')
 const postgres = require('../../../__mocks__/pg')
 const axios = require('axios')
+const jwtService = require('../../../lib/services/jwt')
+jest.mock('../../../lib/services/jwt')
 jest.mock('../../../lib/adapters/redis')
 jest.mock('axios')
 
@@ -11,6 +13,7 @@ describe('services/consents #create', () => {
   let consentBody
   beforeEach(() => {
     redis.set.mockResolvedValue('OK')
+    jwtService.createToken.mockReturnValue('eyJhbGciOiJIUzI1NiIsIn...')
   })
   afterEach(() => {
     postgres.clearMocks()
@@ -102,6 +105,7 @@ describe('services/consents #create', () => {
       type: 'CONSENT_APPROVED',
       payload: {
         consentId: expect.any(String),
+        jwt: expect.any(String),
         consentRequestId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
         consentEncryptionKeyId: 'http://localhost:4000/jwks/enc_20190115082310',
         scope: [
