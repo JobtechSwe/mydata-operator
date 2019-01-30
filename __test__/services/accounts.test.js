@@ -1,13 +1,11 @@
 const { create, get } = require('../../lib/services/accounts')
-const postgres = require('../../lib/adapters/postgres')
+const pg = require('../../__mocks__/pg')
 jest.mock('../../lib/adapters/redis')
-jest.mock('../../lib/adapters/postgres')
 
 describe('services/accounts', () => {
-  let connection
-  beforeEach(() => {
-    connection = { query: jest.fn().mockResolvedValue(), end: jest.fn().mockResolvedValue() }
-    postgres.connect.mockResolvedValue(connection)
+  afterEach(() => {
+    pg.clearMocks()
+    pg.restoreDefaults()
   })
   describe('#create', () => {
     let account
@@ -25,14 +23,13 @@ describe('services/accounts', () => {
     it('fails if the input is invalid', async () => {
       await expect(create({})).rejects.toThrow()
     })
-    it('calls connect and query', async () => {
+    it('calls query', async () => {
       await create(account)
-      expect(postgres.connect).toHaveBeenCalled()
-      expect(connection.query).toHaveBeenCalled()
+      expect(pg.client.query).toHaveBeenCalled()
     })
     it('saves to db with correct parameters', async () => {
       await create(account)
-      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [
+      expect(pg.client.query).toHaveBeenCalledWith(expect.any(String), [
         expect.any(String), // uuid
         '-----BEGIN RSA PUBLIC KEY----- ...', // public key
         account.pds.provider,
@@ -45,46 +42,31 @@ describe('services/accounts', () => {
         id: expect.any(String)
       })
     })
-    it('closes the connection on success', async () => {
-      await create(account)
-      expect(connection.end).toHaveBeenCalled()
-    })
-    it('closes the connection on fail', async () => {
-      connection.query.mockRejectedValue(new Error())
-
-      try {
-        await create(account)
-      } catch (err) { }
-      expect(connection.end).toHaveBeenCalled()
-    })
   })
   describe('#get', () => {
-    let accountId
+    let accountId, pdsCredentials
     beforeEach(() => {
       accountId = '2982bf9d-cda1-4a2a-ae1b-189cf7f65673'
+      pdsCredentials = {
+        apiKey: 'foo'
+      }
+      pg.client.query.mockResolvedValue({
+        rows: [{
+          id: accountId,
+          pds_credentials: Buffer.from(JSON.stringify(pdsCredentials)) 
+        }]
+      })
     })
     it('fails if the input is invalid', async () => {
       await expect(get()).rejects.toThrow()
     })
     it('gets from postgres by id', async () => {
-      connection.query.mockResolvedValue({ rows: [{ id: accountId }] })
       await get(accountId)
-      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [accountId])
+      expect(pg.client.query).toHaveBeenCalledWith(expect.any(String), [accountId])
     })
     it('returns the account', async () => {
-      connection.query.mockResolvedValue({ rows: [{ id: accountId }] })
       const result = await get(accountId)
-      expect(result).toEqual({ id: accountId })
-    })
-    it('returns pdsCredentials as base64', async () => {
-      const pdsCredentials = {
-        0: 0x7b,
-        1: 0x7d
-      }
-      const credentialsString = Buffer.from([0x7b, 0x7d]).toString('base64')
-      connection.query.mockResolvedValue({ rows: [{ id: accountId, pdsCredentials }] })
-      const result = await get(accountId)
-      expect(result).toEqual({ id: accountId, pdsCredentials: credentialsString })
+      expect(result).toEqual({ id: accountId, pdsCredentials })
     })
   })
 })

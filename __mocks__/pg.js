@@ -1,13 +1,20 @@
 const client = {
-  connect: jest.fn().mockResolvedValue(),
-  query: jest.fn().mockResolvedValue({
-    metaData: [],
-    rows: []
-  }),
-  end: jest.fn().mockResolvedValue()
+  connect: jest.fn(),
+  query: jest.fn(),
+  end: jest.fn()
 }
 function Client () {
   return client
+}
+
+function restoreDefaults () {
+  client.connect.mockResolvedValue()
+  client.query.mockResolvedValue({
+    metaData: [],
+    rows: [],
+    rowCount: 0
+  })
+  client.end.mockResolvedValue()
 }
 
 function clearMocks () {
@@ -16,4 +23,6 @@ function clearMocks () {
   client.end.mockClear()
 }
 
-module.exports = { Client, client, clearMocks, connection: client }
+restoreDefaults()
+
+module.exports = { Client, client, clearMocks, restoreDefaults, connection: client }

@@ -15,7 +15,7 @@ describe('adapters/pds', () => {
         }
         account = {
           pdsProvider: 'dropbox',
-          pdsCredentials: Buffer.from(JSON.stringify(pdsCredentials)).toString('base64')
+          pdsCredentials
         }
         fs = {
           readFile: jest.fn((path, options, cb) => cb()).mockName('readFile'),

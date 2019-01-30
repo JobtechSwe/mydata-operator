@@ -1,0 +1,97 @@
+const dataService = require('../../lib/services/data')
+const pg = require('../../__mocks__/pg')
+const dfs = require('../../__mocks__/dropbox-fs')()
+
+describe('services/data', () => {
+  let apiKey
+  beforeEach(() => {
+    apiKey = 'my key'
+    dfs.filesystem = {
+      'data': {
+        'localhost:4000': {
+          'cv.json': '{"cv":"foo"}',
+          'personal.json': '{"name":"Johan"}'
+        },
+        'linkedin.com': {
+          'experience.json': '{"experience":1}'
+        }
+      }
+    }
+    const credentials = { apiKey }
+    const credentialsBuffer = Buffer.from(JSON.stringify(credentials))
+    pg.client.query.mockImplementation((sql) => {
+      return Promise.resolve({
+        rows: [
+          {
+            account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
+            pds_provider: 'dropbox',
+            pds_credentials: credentialsBuffer,
+            domain: 'localhost:4000',
+            area: 'cv',
+            read: true,
+            write: true
+          },
+          {
+            account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
+            pds_provider: 'dropbox',
+            pds_credentials: credentialsBuffer,
+            domain: 'localhost:4000',
+            area: 'personal',
+            read: true,
+            write: true
+          },
+          {
+            account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
+            pds_provider: 'dropbox',
+            pds_credentials: credentialsBuffer,
+            domain: 'linkedin.com',
+            area: 'experience',
+            read: true,
+            write: true
+          }
+        ]
+      })
+    })
+  })
+  afterEach(() => {
+    pg.clearMocks()
+  })
+  it('retrieves consent information from db', async () => {
+    await dataService.get('b106b599-d821-48cb-b588-e583d6dc41e8', 'localhost', 'cv')
+    expect(pg.client.query).toHaveBeenCalledTimes(1)
+  })
+  it('filters on consentId', async () => {
+    await dataService.get('b106b599-d821-48cb-b588-e583d6dc41e8')
+    expect(pg.client.query).toHaveBeenCalledWith(
+      expect.stringMatching(/SELECT([\s\S]*)WHERE([\s\S]*)consent_id = \$1/gm),
+      ['b106b599-d821-48cb-b588-e583d6dc41e8']
+    )
+  })
+  it('filters on consentId and domain', async () => {
+    await dataService.get('b106b599-d821-48cb-b588-e583d6dc41e8', 'localhost')
+    expect(pg.client.query).toHaveBeenCalledWith(
+      expect.stringMatching(/SELECT([\s\S]*)WHERE([\s\S]*)consent_id = \$1([\s\S]*)AND([\s\S]*)domain = \$2/gm),
+      ['b106b599-d821-48cb-b588-e583d6dc41e8', 'localhost']
+    )
+  })
+  it('filters on consentId, domain and area', async () => {
+    await dataService.get('b106b599-d821-48cb-b588-e583d6dc41e8', 'localhost', 'cv')
+    expect(pg.client.query).toHaveBeenCalledWith(
+      expect.stringMatching(/SELECT([\s\S]*)WHERE([\s\S]*)consent_id = \$1([\s\S]*)AND([\s\S]*)domain = \$2([\s\S]*)AND([\s\S]*)area = \$3/gm),
+      ['b106b599-d821-48cb-b588-e583d6dc41e8', 'localhost', 'cv']
+    )
+  })
+  it('reads', async () => {
+    const expected = {
+      'localhost:4000': {
+        'cv': '{"cv":"foo"}',
+        'personal': '{"name":"Johan"}'
+      },
+      'linkedin.com': {
+        'experience': '{"experience":1}'
+      }
+    }
+    const result = await dataService.get('b106b599-d821-48cb-b588-e583d6dc41e8')
+    expect(result).toEqual(expected)
+  })
+})
