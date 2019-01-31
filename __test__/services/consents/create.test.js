@@ -1,6 +1,6 @@
 const { create } = require('../../../lib/services/consents')
 const redis = require('../../../lib/adapters/redis')
-const postgres = require('../../../__mocks__/pg')
+const pg = require('../../../__mocks__/pg')
 const axios = require('axios')
 const jwtService = require('../../../lib/services/jwt')
 jest.mock('../../../lib/services/jwt')
@@ -16,7 +16,8 @@ describe('services/consents #create', () => {
     jwtService.createToken.mockReturnValue('eyJhbGciOiJIUzI1NiIsIn...')
   })
   afterEach(() => {
-    postgres.clearMocks()
+    pg.clearMocks()
+    pg.restoreDefaults()
   })
 
   beforeEach(() => {
@@ -49,10 +50,10 @@ describe('services/consents #create', () => {
     let calls = 1
 
     // Transaction begin
-    expect(postgres.client.query).toHaveBeenNthCalledWith(calls++, 'BEGIN')
+    expect(pg.client.query).toHaveBeenNthCalledWith(calls++, 'BEGIN')
 
     // Consent request
-    expect(postgres.client.query).toHaveBeenNthCalledWith(calls++,
+    expect(pg.client.query).toHaveBeenNthCalledWith(calls++,
       expect.stringMatching(/^INSERT INTO consent_requests/),
       [
         consentBody.consentRequestId,
@@ -61,10 +62,10 @@ describe('services/consents #create', () => {
         consentBody.clientId,
         JSON.stringify(consentBody)
       ])
-    const consentId = postgres.client.query.mock.calls[1][1][1]
+    const consentId = pg.client.query.mock.calls[1][1][1]
 
     // Scope
-    expect(postgres.client.query).toHaveBeenNthCalledWith(calls++,
+    expect(pg.client.query).toHaveBeenNthCalledWith(calls++,
       expect.stringMatching(/^INSERT INTO scope/),
       [
         expect.any(String), // scope id
@@ -77,16 +78,16 @@ describe('services/consents #create', () => {
         true,
         false
       ])
-    const scopeId = postgres.client.query.mock.calls[2][1][0]
+    const scopeId = pg.client.query.mock.calls[2][1][0]
 
     // Encryption keys
-    expect(postgres.client.query).toHaveBeenNthCalledWith(calls++,
+    expect(pg.client.query).toHaveBeenNthCalledWith(calls++,
       expect.stringMatching(/^INSERT INTO encryption_keys/),
       [
         'http://localhost:4000/jwks/enc_20190115082310',
         '-----BEGIN RSA PUBLIC KEY----- consent'
       ])
-    expect(postgres.client.query).toHaveBeenNthCalledWith(calls++,
+    expect(pg.client.query).toHaveBeenNthCalledWith(calls++,
       expect.stringMatching(/^INSERT INTO scope_keys/),
       [
         scopeId,
@@ -94,9 +95,9 @@ describe('services/consents #create', () => {
       ])
 
     // Transaction commit
-    expect(postgres.client.query).toHaveBeenNthCalledWith(calls, 'COMMIT')
-    expect(postgres.client.query).toHaveBeenCalledTimes(calls)
-    expect(postgres.client.end).toBeCalledTimes(1)
+    expect(pg.client.query).toHaveBeenNthCalledWith(calls, 'COMMIT')
+    expect(pg.client.query).toHaveBeenCalledTimes(calls)
+    expect(pg.client.end).toBeCalledTimes(1)
   })
   it('posts the right stuff to the client', async () => {
     await create(consentBody)

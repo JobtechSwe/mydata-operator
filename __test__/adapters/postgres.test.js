@@ -6,12 +6,6 @@ describe('adapters/postgres', () => {
     pg.clearMocks()
     pg.restoreDefaults()
   })
-  describe('#connect', () => {
-    it('calls connect on client', async () => {
-      await postgres.connect()
-      expect(pg.client.connect).toHaveBeenCalledTimes(1)
-    })
-  })
   describe('#query', () => {
     afterEach(() => {
       pg.clearMocks()

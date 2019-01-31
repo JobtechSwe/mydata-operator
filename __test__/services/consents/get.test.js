@@ -1,24 +1,22 @@
 const { get } = require('../../../lib/services/consents')
 const redis = require('../../../lib/adapters/redis')
-const postgres = require('../../../lib/adapters/postgres')
+const pg = require('../../../__mocks__/pg')
 jest.mock('../../../lib/adapters/redis')
-jest.mock('../../../lib/adapters/postgres')
 
 describe('services/consents #get', () => {
-  let connection
   beforeEach(() => {
     redis.set.mockResolvedValue('OK')
-    connection = {
-      query: jest.fn().mockResolvedValue({ rows: [{}] }),
-      end: jest.fn().mockResolvedValue()
-    }
-    postgres.connect.mockResolvedValue(connection)
+    pg.client.query.mockResolvedValue({
+      rows: [{}]
+    })
+  })
+  afterEach(() => {
+    pg.clearMocks()
+    pg.restoreDefaults()
   })
 
-  it('connects and queries db', async () => {
-    connection.query.mockResolvedValue({ rows: ['item', 'another-item'] })
+  it('queries the db', async () => {
     await get('consent-id')
-    expect(postgres.connect).toHaveBeenCalled()
-    expect(connection.query).toHaveBeenCalled()
+    expect(pg.client.query).toHaveBeenCalled()
   })
 })

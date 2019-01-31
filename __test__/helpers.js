@@ -5,27 +5,27 @@ const { promisify } = require('util')
 const createApi = (app) => {
   const api = request(app)
   return {
-    get: (url) => api
+    get: (url, headers = {}) => api
       .get(url)
-      .set({ Accept: 'application/json' }),
-    post: (url, data) => api.post(url)
-      .set({ 'Content-Type': 'application/json' })
+      .set({ Accept: 'application/json', ...headers }),
+    post: (url, data, headers = {}) => api.post(url)
+      .set({ 'Content-Type': 'application/json', ...headers })
       .accept('application/json')
       .send(data),
-    put: (url, data) => api.put(url)
-      .set({ 'Content-Type': 'application/json' })
+    put: (url, data, headers = {}) => api.put(url)
+      .set({ 'Content-Type': 'application/json', ...headers })
       .accept('application/json')
       .send(data),
-    patch: (url, data) => api.patch(url)
-      .set({ 'Content-Type': 'application/json' })
+    patch: (url, data, headers = {}) => api.patch(url)
+      .set({ 'Content-Type': 'application/json', ...headers })
       .accept('application/json')
       .send(data),
-    del: (url) => api
+    del: (url, headers = {}) => api
       .del(url)
-      .set({ Accept: 'application/json' }),
-    delete: (url) => api
+      .set({ Accept: 'application/json', ...headers }),
+    delete: (url, headers = {}) => api
       .delete(url)
-      .set({ Accept: 'application/json' })
+      .set({ Accept: 'application/json', ...headers })
   }
 }
 
