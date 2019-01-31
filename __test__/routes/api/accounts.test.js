@@ -1,22 +1,16 @@
 const { createApi, generateKeys, sign } = require('../../helpers')
 const app = require('../../../lib/app')
-const postgres = require('../../../lib/adapters/postgres')
+const pg = require('../../../__mocks__/pg')
 
-jest.mock('../../../lib/adapters/postgres')
 jest.mock('../../../lib/adapters/pds')
 
 describe('routes /api/accounts', () => {
-  let api, accountKeys, connection
+  let api, accountKeys
   beforeAll(async () => {
     accountKeys = await generateKeys('sig')
   })
   beforeEach(() => {
     api = createApi(app)
-    connection = {
-      query: jest.fn().mockResolvedValue({}),
-      end: jest.fn()
-    }
-    postgres.connect.mockResolvedValue(connection)
   })
   const payload = (data) => ({
     data,
@@ -46,7 +40,7 @@ describe('routes /api/accounts', () => {
     it('creates an account', async () => {
       await api.post('/api/accounts', payload(account))
 
-      expect(connection.query).toHaveBeenCalledWith(expect.any(String), [
+      expect(pg.client.query).toHaveBeenCalledWith(expect.any(String), [
         expect.any(String), // uuid,
         accountKeys.publicKey,
         account.pds.provider,
@@ -72,7 +66,7 @@ describe('routes /api/accounts', () => {
     })
     it('returns a 500 error if service borks', async () => {
       const error = new Error('b0rk')
-      connection.query.mockRejectedValue(error)
+      pg.client.query.mockRejectedValue(error)
       const response = await api.post('/api/accounts', payload(account))
 
       expect(response.status).toEqual(500)
@@ -87,12 +81,12 @@ describe('routes /api/accounts', () => {
         id: accountId,
         account_key: 'key',
         pds_provider: 'dropbox',
-        pds_credentials: Buffer.from('token').toString('base64')
+        pds_credentials: Buffer.from('{"apiKey":"key"}')
       }
-      connection.query.mockResolvedValue({ rows: [account] })
+      pg.client.query.mockResolvedValue({ rows: [account] })
     })
     it('sets status 404 if account was not found', async () => {
-      connection.query.mockResolvedValue({ rows: [] })
+      pg.client.query.mockResolvedValue({ rows: [] })
       const response = await api.get(`/api/accounts/${accountId}`)
 
       expect(response.status).toEqual(404)
@@ -118,7 +112,7 @@ describe('routes /api/accounts', () => {
       })
     })
     it('returns a 500 if service borks', async () => {
-      connection.query.mockRejectedValue(new Error('b0rk'))
+      pg.client.query.mockRejectedValue(new Error('b0rk'))
       const response = await api.get(`/api/accounts/${accountId}`)
 
       expect(response.status).toEqual(500)

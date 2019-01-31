@@ -53,7 +53,7 @@ describe('services/accounts', () => {
       pg.client.query.mockResolvedValue({
         rows: [{
           id: accountId,
-          pds_credentials: Buffer.from(JSON.stringify(pdsCredentials)) 
+          pds_credentials: Buffer.from(JSON.stringify(pdsCredentials))
         }]
       })
     })

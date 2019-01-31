@@ -81,11 +81,25 @@ describe('services/data', () => {
       ['b106b599-d821-48cb-b588-e583d6dc41e8', 'localhost', 'cv']
     )
   })
-  it('reads', async () => {
+  it('reads and returns data for all consents', async () => {
     const expected = {
       'localhost:4000': {
         'cv': '{"cv":"foo"}',
         'personal': '{"name":"Johan"}'
+      },
+      'linkedin.com': {
+        'experience': '{"experience":1}'
+      }
+    }
+    const result = await dataService.get('b106b599-d821-48cb-b588-e583d6dc41e8')
+    expect(result).toEqual(expected)
+  })
+  it('returns null for missing data', async () => {
+    dfs.filesystem.data['localhost:4000'] = undefined
+    const expected = {
+      'localhost:4000': {
+        'cv': null,
+        'personal': null
       },
       'linkedin.com': {
         'experience': '{"experience":1}'
