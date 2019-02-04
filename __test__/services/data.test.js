@@ -19,38 +19,36 @@ describe('services/data', () => {
     }
     const credentials = { apiKey }
     const credentialsBuffer = Buffer.from(JSON.stringify(credentials))
-    pg.client.query.mockImplementation((sql) => {
-      return Promise.resolve({
-        rows: [
-          {
-            account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
-            pds_provider: 'dropbox',
-            pds_credentials: credentialsBuffer,
-            domain: 'localhost:4000',
-            area: 'cv',
-            read: true,
-            write: true
-          },
-          {
-            account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
-            pds_provider: 'dropbox',
-            pds_credentials: credentialsBuffer,
-            domain: 'localhost:4000',
-            area: 'personal',
-            read: true,
-            write: true
-          },
-          {
-            account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
-            pds_provider: 'dropbox',
-            pds_credentials: credentialsBuffer,
-            domain: 'linkedin.com',
-            area: 'experience',
-            read: true,
-            write: true
-          }
-        ]
-      })
+    pg.client.query.mockResolvedValue({
+      rows: [
+        {
+          account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
+          pds_provider: 'dropbox',
+          pds_credentials: credentialsBuffer,
+          domain: 'localhost:4000',
+          area: 'cv',
+          read: true,
+          write: true
+        },
+        {
+          account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
+          pds_provider: 'dropbox',
+          pds_credentials: credentialsBuffer,
+          domain: 'localhost:4000',
+          area: 'personal',
+          read: true,
+          write: true
+        },
+        {
+          account_id: 'b106b599-d821-48cb-b588-e583d6dc41e8',
+          pds_provider: 'dropbox',
+          pds_credentials: credentialsBuffer,
+          domain: 'linkedin.com',
+          area: 'experience',
+          read: true,
+          write: true
+        }
+      ]
     })
   })
   afterEach(() => {
@@ -109,6 +107,13 @@ describe('services/data', () => {
       const result = await dataService.read('b106b599-d821-48cb-b588-e583d6dc41e8')
       expect(result).toEqual(expected)
     })
+  })
+  it('throws error `no consents`', () => {
+    pg.client.query.mockResolvedValue({
+      rows: []
+    })
+
+    expect(dataService.read('b106b599-d821-48cb-b588-e583d6dc41e8')).rejects.toThrow('Found no consents for the provided arguments')
   })
 
   describe('#write', () => {
