@@ -7,7 +7,7 @@ const { serialize } = require('jwks-provider')
 describe('routes api/clients', () => {
   let clientKeys, clientHost
   beforeAll(async () => {
-    clientKeys = await generateKeys('sig', 'client_key')
+    clientKeys = await generateKeys('sig', 'http://this-should-be-changed-to-match-clientHost.work/jwks/client_key')
 
     const clientApp = express()
     clientApp.get('/jwks', (_, res) => {
@@ -30,8 +30,8 @@ describe('routes api/clients', () => {
       clientId: `http://localhost:${clientHost.address().port}`,
       displayName: 'C:V - Create your digital Curriculum Vitae',
       description: 'Integrates with MyData - you are in complete control',
-      eventsUrl: '/events',
-      jwksUrl: '/jwks'
+      eventsUrl: `http://localhost:${clientHost.address().port}/events`,
+      jwksUrl: `http://localhost:${clientHost.address().port}/jwks`
     }
 
     clients = []
