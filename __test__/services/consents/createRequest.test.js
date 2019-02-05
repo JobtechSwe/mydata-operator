@@ -20,7 +20,7 @@ describe.skip('services/consents #createRequest', () => {
   })
   it('calls redis.set', async () => {
     await createRequest({
-      clientId: 'mycv.com',
+      clientId: 'http://mycv.com',
       scope: ['foo', 'bar']
     })
 
@@ -30,7 +30,7 @@ describe.skip('services/consents #createRequest', () => {
     redis.set.mockResolvedValueOnce('not-OK')
 
     await createRequest({
-      clientId: 'mycv.com',
+      clientId: 'http://mycv.com',
       scope: ['foo', 'bar']
     })
 

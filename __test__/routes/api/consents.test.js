@@ -13,7 +13,7 @@ describe('routes /api/consents', () => {
   beforeEach(() => {
     api = createApi(app)
     cv = {
-      clientId: 'cv.work',
+      clientId: 'http://cv.work',
       clientKey: clientKeys.publicKey,
       jwksUrl: '/jwks',
       eventsUrl: '/events',
@@ -36,7 +36,7 @@ describe('routes /api/consents', () => {
     let data
     beforeEach(() => {
       data = {
-        clientId: 'cv.work',
+        clientId: 'http://cv.work',
         kid: 'encryption-key-id',
         expiry: 123143234,
         scope: [
@@ -88,7 +88,7 @@ describe('routes /api/consents', () => {
     let consentRequest, signature
     beforeEach(() => {
       consentRequest = {
-        clientId: 'cv.work',
+        clientId: 'http://cv.work',
         kid: 'encryption-key-id',
         expiry: 123143234,
         scope: [
@@ -99,7 +99,7 @@ describe('routes /api/consents', () => {
       }
       signature = {
         client: {
-          clientId: 'cv.work',
+          clientId: 'http://cv.work',
           jwksUrl: '/jwks',
           eventsUrl: '/events',
           displayName: 'CV',

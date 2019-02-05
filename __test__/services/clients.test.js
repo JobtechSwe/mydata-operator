@@ -6,7 +6,7 @@ describe('services/clients', () => {
     let data
     beforeEach(() => {
       data = {
-        clientId: 'mycv.example',
+        clientId: 'http://mycv.example',
         displayName: 'mycv',
         description: 'this is the best app there is',
         jwksUrl: '/jwks',
@@ -41,7 +41,7 @@ describe('services/clients', () => {
     beforeEach(() => {
       pg.client.query.mockResolvedValue({
         rows: [{
-          client_id: 'mycv.example',
+          client_id: 'http://mycv.example',
           display_name: 'mycv',
           description: 'this is the best app there is',
           jwks_url: '/jwks',
@@ -53,7 +53,7 @@ describe('services/clients', () => {
     it('returns the data camelCased', async () => {
       const result = await get('mycv.example')
       expect(result).toEqual({
-        clientId: 'mycv.example',
+        clientId: 'http://mycv.example',
         displayName: 'mycv',
         description: 'this is the best app there is',
         jwksUrl: '/jwks',

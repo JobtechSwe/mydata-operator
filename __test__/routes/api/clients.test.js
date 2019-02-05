@@ -27,12 +27,11 @@ describe('routes api/clients', () => {
     api = createApi(app)
 
     data = {
-      clientId: `localhost:${clientHost.address().port}`,
+      clientId: `http://localhost:${clientHost.address().port}`,
       displayName: 'C:V - Create your digital Curriculum Vitae',
       description: 'Integrates with MyData - you are in complete control',
       eventsUrl: '/events',
-      jwksUrl: '/jwks',
-      unsafe: true
+      jwksUrl: '/jwks'
     }
 
     clients = []

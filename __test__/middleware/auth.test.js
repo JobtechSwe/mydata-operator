@@ -14,7 +14,7 @@ describe('/middleware/auth', () => {
   let app, route, api, cv
   beforeEach(() => {
     cv = {
-      clientId: 'mydata.work',
+      clientId: 'http://mydata.work',
       clientKey: clientKey.publicKey,
       displayName: 'My CV',
       description: 'An app',
@@ -26,10 +26,9 @@ describe('/middleware/auth', () => {
     route = jest.fn((req, res) => res.send({})).mockName('route')
     app = express()
     app.use(express.json())
-    app.post('/unsafe', signed({ unsafe: true }), route)
-    app.post('/safe', signed({}), route)
-    app.post('/accounts', signed({ unsafe: true, accountKey: true }), route)
-    app.post('/clients', signed({ unsafe: true, clientKey: true }), route)
+    app.post('/test', signed(), route)
+    app.post('/accounts', signed({ accountKey: true }), route)
+    app.post('/clients', signed({ clientKey: true }), route)
 
     app.use((err, req, res, next) => res.status(err.status).send(err))
 
@@ -41,8 +40,7 @@ describe('/middleware/auth', () => {
       beforeEach(() => {
         payload = {
           data: {
-            clientId: 'mydata.work',
-            unsafe: true,
+            clientId: 'http://mydata.work',
             foo: 'bar'
           },
           signature: {
@@ -54,80 +52,99 @@ describe('/middleware/auth', () => {
         payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
       })
       it('gives a validation error if data and signature are not present', async () => {
-        const res = await api.post('/unsafe', {})
+        const res = await api.post('/test', {})
         expect(route).not.toBeCalled()
         expect(res.status).toEqual(400)
         expect(res.body.name).toEqual('ValidationError')
       })
       it('throws 400 if no data is present', async () => {
         payload.data = undefined
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(route).not.toBeCalled()
         expect(res.status).toEqual(400)
         expect(res.body.name).toEqual('ValidationError')
       })
       it('throws 400 if no signature is present', async () => {
         payload.signature = undefined
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(route).not.toBeCalled()
         expect(res.status).toEqual(400)
         expect(res.body.name).toEqual('ValidationError')
       })
       it('throws 400 if data.clientId is missing', async () => {
         payload.data.clientId = undefined
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(route).not.toBeCalled()
         expect(res.status).toEqual(400)
         expect(res.body.name).toEqual('ValidationError')
       })
       it('throws 400 if signature.kid is missing', async () => {
         payload.signature.kid = undefined
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(route).not.toBeCalled()
         expect(res.status).toEqual(400)
         expect(res.body.name).toEqual('ValidationError')
       })
       it('throws 400 if signature.data is missing', async () => {
         payload.signature.data = undefined
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(route).not.toBeCalled()
         expect(res.status).toEqual(400)
         expect(res.body.name).toEqual('ValidationError')
       })
-      it('throws 403 if unsafe is true but not allowed', async () => {
-        clientsService.get.mockResolvedValue()
-        const res = await api.post('/safe', payload)
-        expect(route).not.toBeCalled()
-        expect(res.status).toEqual(403)
-        expect(res.body.message).toEqual('Unsafe host not allowed')
-      })
       it('throws 401 if kid is client_key and clientId cannot be found', async () => {
         clientsService.get.mockResolvedValue()
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(route).not.toBeCalled()
         expect(res.status).toEqual(401)
         expect(res.body.message).toEqual('Unknown clientId')
       })
       it('throws 403 if signature cannot be validated', async () => {
         payload.signature.data = 'bork'
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(route).not.toBeCalled()
         expect(res.body.message).toEqual('Invalid signature')
         expect(res.status).toEqual(403)
       })
       it('throws 403 if algorithm is not allowed', async () => {
         payload.signature.alg = 'md5'
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(route).not.toBeCalled()
         expect(res.body.message).toEqual('Invalid algorithm')
         expect(res.status).toEqual(403)
       })
       it('calls route with data part of payload if signature is verified', async () => {
-        await api.post('/unsafe', payload)
+        await api.post('/test', payload)
         expect(route).toHaveBeenCalled()
         const [[req]] = route.mock.calls
         expect(req.body).toEqual(payload.data)
       })
+
+      describe('safe', () => {
+        beforeEach(() => {
+          process.env.NODE_ENV = 'production'
+        })
+        afterEach(() => {
+          process.env.NODE_ENV = 'test'
+        })
+        it('throws 403 and does not call route if in production and clientId is using http', async () => {
+          clientsService.get.mockResolvedValue()
+          const res = await api.post('/test', payload)
+          expect(route).not.toBeCalled()
+          expect(res.status).toEqual(403)
+          expect(res.body.message).toEqual('Unsafe (http) is not allowed')
+        })
+        it('calls route with data part of payload if signature is verified if in production and https is used', async () => {
+          payload.data.clientId = 'https://mydata.work'
+          payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
+
+          await api.post('/test', payload)
+          expect(route).toHaveBeenCalled()
+          const [[req]] = route.mock.calls
+          expect(req.body).toEqual(payload.data)
+        })
+      })
+
       describe('verifying through calling jwks endpoint', () => {
         let server, signingKey
         beforeEach(async () => {
@@ -140,7 +157,7 @@ describe('/middleware/auth', () => {
           })
           return new Promise((resolve) => {
             server = app.listen(() => {
-              payload.data.clientId = cv.clientId = `localhost:${server.address().port}`
+              payload.data.clientId = cv.clientId = `http://localhost:${server.address().port}`
               payload.signature.kid = signingKey.kid
               payload.signature.data = sign(payload.signature.alg, payload.data, signingKey.privateKey)
               resolve()
@@ -152,19 +169,19 @@ describe('/middleware/auth', () => {
         })
         it('throws a 401 if specified key cannot be retrieved', async () => {
           cv.jwksUrl = '/wrong/url'
-          const res = await api.post('/unsafe', payload)
+          const res = await api.post('/test', payload)
           expect(res.status).toEqual(401)
           expect(res.body.message).toEqual('Could not retrieve key')
         })
         it('calls route with data part of payload if signature is verified', async () => {
-          const res = await api.post('/unsafe', payload)
+          const res = await api.post('/test', payload)
           expect(res.status).toEqual(200)
           expect(route).toHaveBeenCalled()
           const [[req]] = route.mock.calls
           expect(req.body).toEqual(payload.data)
         })
         it('sets req.signature.client', async () => {
-          const res = await api.post('/unsafe', payload)
+          const res = await api.post('/test', payload)
           expect(res.status).toEqual(200)
           expect(route).toHaveBeenCalled()
           const [[req]] = route.mock.calls
@@ -172,13 +189,13 @@ describe('/middleware/auth', () => {
         })
       })
     })
+
     describe('register client', () => {
       let server, payload
       beforeEach(() => {
         payload = {
           data: {
-            clientId: 'mydata.work',
-            unsafe: true,
+            clientId: 'http://mydata.work',
             foo: 'bar'
           },
           signature: {
@@ -202,7 +219,7 @@ describe('/middleware/auth', () => {
         })
         return new Promise((resolve) => {
           server = clientApp.listen(() => {
-            payload.data.clientId = `localhost:${server.address().port}`
+            payload.data.clientId = `http://localhost:${server.address().port}`
             payload.data.jwksUrl = jwksUrl
             payload.signature.kid = 'client_key'
             payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
@@ -214,7 +231,7 @@ describe('/middleware/auth', () => {
         await server.close()
       })
       it('calls register route with data part of payload if signature is verified', async () => {
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(res.status).toEqual(200)
         expect(route).toHaveBeenCalled()
         const [[req]] = route.mock.calls
@@ -222,13 +239,14 @@ describe('/middleware/auth', () => {
       })
       it('does not set req.signature.client', async () => {
         clientsService.get.mockResolvedValue()
-        const res = await api.post('/unsafe', payload)
+        const res = await api.post('/test', payload)
         expect(res.status).toEqual(200)
         expect(route).toHaveBeenCalled()
         const [[req]] = route.mock.calls
         expect(req.signature.client).toEqual(undefined)
       })
     })
+
     describe('register account', () => {
       let accountKey, payload
       beforeAll(async () => {

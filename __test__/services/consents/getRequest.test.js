@@ -16,14 +16,14 @@ describe.skip('services/consents #getRequest', () => {
   })
 
   it('returns an object', async () => {
-    redis.get.mockResolvedValue('{"clientId":"mydearjohn.com","scope":["loveletters"]}')
+    redis.get.mockResolvedValue('{"clientId":"http://cv.work","scope":["loveletters"]}')
 
     const result = await getRequest('5678')
 
     expect(result).toEqual({
       client: {},
       request: {
-        clientId: 'mydearjohn.com',
+        clientId: 'http://cv.work',
         scope: ['loveletters']
       }
     })

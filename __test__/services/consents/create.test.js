@@ -27,7 +27,7 @@ describe('services/consents #create', () => {
       consentEncryptionKey: base64('-----BEGIN RSA PUBLIC KEY----- consent'),
       accountId: 'b60c5a93-ed93-41bd-8f77-176c564fb976',
       accountKey: base64('-----BEGIN RSA PUBLIC KEY----- account'),
-      clientId: 'cv.work',
+      clientId: 'http://cv.work',
       scope: [
         {
           // clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==',
