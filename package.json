@@ -27,6 +27,7 @@
     "cookie-parser": "~1.4.3",
     "cors": "^2.8.4",
     "debug": "~2.6.9",
+    "dotenv": "^6.2.0",
     "dropbox-fs": "^0.3.0",
     "elastic-apm-node": "^1.14.5",
     "express": "~4.16.0",
