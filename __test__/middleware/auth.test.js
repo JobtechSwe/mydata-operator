@@ -18,8 +18,8 @@ describe('/middleware/auth', () => {
       clientKey: clientKey.publicKey,
       displayName: 'My CV',
       description: 'An app',
-      jwksUrl: '/jwks',
-      eventsUrl: '/events'
+      jwksUrl: 'http://mydata.work/jwks',
+      eventsUrl: 'http://mydata.work/events'
     }
     clientsService.get.mockResolvedValue(cv)
 
@@ -35,9 +35,11 @@ describe('/middleware/auth', () => {
     api = createApi(app)
   })
   describe('#signed', () => {
-    describe('with clientId and kid', () => {
-      let payload
+    describe('with clientId and kid (general)', () => {
+      let payload, keys
       beforeEach(() => {
+        keys = {}
+        keys[clientKey.kid] = clientKey
         payload = {
           data: {
             clientId: 'http://mydata.work',
@@ -46,7 +48,7 @@ describe('/middleware/auth', () => {
           signature: {
             alg: 'RSA-SHA256',
             data: '',
-            kid: 'client_key'
+            kid: 'http://mydata.work/jwks/client_key'
           }
         }
         payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
@@ -92,20 +94,6 @@ describe('/middleware/auth', () => {
         expect(res.status).toEqual(400)
         expect(res.body.name).toEqual('ValidationError')
       })
-      it('throws 401 if kid is client_key and clientId cannot be found', async () => {
-        clientsService.get.mockResolvedValue()
-        const res = await api.post('/test', payload)
-        expect(route).not.toBeCalled()
-        expect(res.status).toEqual(401)
-        expect(res.body.message).toEqual('Unknown clientId')
-      })
-      it('throws 403 if signature cannot be validated', async () => {
-        payload.signature.data = 'bork'
-        const res = await api.post('/test', payload)
-        expect(route).not.toBeCalled()
-        expect(res.body.message).toEqual('Invalid signature')
-        expect(res.status).toEqual(403)
-      })
       it('throws 403 if algorithm is not allowed', async () => {
         payload.signature.alg = 'md5'
         const res = await api.post('/test', payload)
@@ -113,13 +101,6 @@ describe('/middleware/auth', () => {
         expect(res.body.message).toEqual('Invalid algorithm')
         expect(res.status).toEqual(403)
       })
-      it('calls route with data part of payload if signature is verified', async () => {
-        await api.post('/test', payload)
-        expect(route).toHaveBeenCalled()
-        const [[req]] = route.mock.calls
-        expect(req.body).toEqual(payload.data)
-      })
-
       describe('safe', () => {
         beforeEach(() => {
           process.env.NODE_ENV = 'production'
@@ -134,32 +115,34 @@ describe('/middleware/auth', () => {
           expect(res.status).toEqual(403)
           expect(res.body.message).toEqual('Unsafe (http) is not allowed')
         })
-        it('calls route with data part of payload if signature is verified if in production and https is used', async () => {
-          payload.data.clientId = 'https://mydata.work'
-          payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
-
-          await api.post('/test', payload)
-          expect(route).toHaveBeenCalled()
-          const [[req]] = route.mock.calls
-          expect(req.body).toEqual(payload.data)
-        })
       })
 
       describe('verifying through calling jwks endpoint', () => {
         let server, signingKey
         beforeEach(async () => {
           signingKey = await generateKeys('sig', 'some_other_signing_key')
+          keys[signingKey.kid] = signingKey
 
           const app = express()
           app.use(express.json())
-          app.get(cv.jwksUrl, (req, res) => {
-            res.send(jwksProvider.serialize([clientKey, signingKey]))
+          app.get('/jwks', (req, res) => {
+            const keys = jwksProvider.serialize([clientKey, signingKey])
+            res.send(keys)
+          })
+          app.get('/jwks/:kid', (req, res) => {
+            const key = keys[req.params.kid]
+            const serialized = jwksProvider.serialize([key]).keys[0]
+            res.send(serialized)
           })
           return new Promise((resolve) => {
             server = app.listen(() => {
-              payload.data.clientId = cv.clientId = `http://localhost:${server.address().port}`
-              payload.signature.kid = signingKey.kid
+              payload.data.clientId = `http://localhost:${server.address().port}`
+              payload.data.jwksUrl = `${payload.data.clientId}/jwks`
+              payload.signature.kid = `${payload.data.jwksUrl}/some_other_signing_key`
               payload.signature.data = sign(payload.signature.alg, payload.data, signingKey.privateKey)
+
+              clientKey.kid = payload.data.jwksUrl + '/' + clientKey.kid
+              signingKey.kid = payload.data.jwksUrl + '/' + signingKey.kid
               resolve()
             })
           })
@@ -168,14 +151,27 @@ describe('/middleware/auth', () => {
           await server.close()
         })
         it('throws a 401 if specified key cannot be retrieved', async () => {
-          cv.jwksUrl = '/wrong/url'
+          payload.signature.kid = 'http://somethingelse.bork/jwks/derp'
           const res = await api.post('/test', payload)
           expect(res.status).toEqual(401)
           expect(res.body.message).toEqual('Could not retrieve key')
         })
-        it('calls route with data part of payload if signature is verified', async () => {
+        it('throws 403 if signature cannot be validated', async () => {
+          payload.signature.data = 'bork'
           const res = await api.post('/test', payload)
-          expect(res.status).toEqual(200)
+          expect(route).not.toBeCalled()
+          expect(res.body.message).toEqual('Invalid signature')
+          expect(res.status).toEqual(403)
+        })
+        it('throws 403 if signature key is wrong', async () => {
+          payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
+          const res = await api.post('/test', payload)
+          expect(route).not.toBeCalled()
+          expect(res.body.message).toEqual('Invalid signature')
+          expect(res.status).toEqual(403)
+        })
+        it('calls route with data part of payload if signature is verified', async () => {
+          await api.post('/test', payload)
           expect(route).toHaveBeenCalled()
           const [[req]] = route.mock.calls
           expect(req.body).toEqual(payload.data)
@@ -190,64 +186,7 @@ describe('/middleware/auth', () => {
       })
     })
 
-    describe('register client', () => {
-      let server, payload
-      beforeEach(() => {
-        payload = {
-          data: {
-            clientId: 'http://mydata.work',
-            foo: 'bar'
-          },
-          signature: {
-            alg: 'RSA-SHA256',
-            data: '',
-            kid: 'client_key'
-          }
-        }
-        payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
-
-        // No client exists
-        clientsService.get.mockResolvedValue()
-
-        const jwksUrl = '/api/jwksUrl'
-
-        // Start server
-        const clientApp = express()
-        clientApp.use(express.json())
-        clientApp.get(jwksUrl, (req, res) => {
-          res.send(jwksProvider.serialize([clientKey]))
-        })
-        return new Promise((resolve) => {
-          server = clientApp.listen(() => {
-            payload.data.clientId = `http://localhost:${server.address().port}`
-            payload.data.jwksUrl = jwksUrl
-            payload.signature.kid = 'client_key'
-            payload.signature.data = sign(payload.signature.alg, payload.data, clientKey.privateKey)
-            resolve()
-          })
-        })
-      })
-      afterEach(async () => {
-        await server.close()
-      })
-      it('calls register route with data part of payload if signature is verified', async () => {
-        const res = await api.post('/test', payload)
-        expect(res.status).toEqual(200)
-        expect(route).toHaveBeenCalled()
-        const [[req]] = route.mock.calls
-        expect(req.body).toEqual(payload.data)
-      })
-      it('does not set req.signature.client', async () => {
-        clientsService.get.mockResolvedValue()
-        const res = await api.post('/test', payload)
-        expect(res.status).toEqual(200)
-        expect(route).toHaveBeenCalled()
-        const [[req]] = route.mock.calls
-        expect(req.signature.client).toEqual(undefined)
-      })
-    })
-
-    describe('register account', () => {
+    describe('with accountKey (create account)', () => {
       let accountKey, payload
       beforeAll(async () => {
         accountKey = await generateKeys('sig', 'account_key')
