@@ -2,15 +2,19 @@ const app = require('../../../lib/app')
 const clientService = require('../../../lib/services/clients')
 const redis = require('../../../lib/adapters/redis')
 const { createApi, generateKeys, sign } = require('../../helpers')
+const { getKey } = require('jwks-manager')
 jest.mock('../../../lib/services/clients')
 jest.mock('../../../lib/adapters/redis')
+jest.mock('jwks-manager', () => ({ getKey: jest.fn() }))
 
 describe('routes /api/consents', () => {
-  let clientKeys, api, cv
+  let api, cv, clientKeys, encryptionKeys
   beforeAll(async () => {
-    clientKeys = await generateKeys('sig', 'client_key')
+    clientKeys = await generateKeys('sig', 'http://cv.work/jwks/client_key')
+    encryptionKeys = await generateKeys('enc', 'http://cv.work/jwks/encryption')
   })
   beforeEach(() => {
+    getKey.mockResolvedValue({ rsaPublicKey: clientKeys.publicKey })
     api = createApi(app)
     cv = {
       clientId: 'http://cv.work',
@@ -27,7 +31,7 @@ describe('routes /api/consents', () => {
     data,
     signature: {
       alg: 'RSA-SHA512',
-      kid: 'client_key',
+      kid: clientKeys.kid,
       data: sign('RSA-SHA512', data, clientKeys.privateKey)
     }
   })
@@ -37,7 +41,7 @@ describe('routes /api/consents', () => {
     beforeEach(() => {
       data = {
         clientId: 'http://cv.work',
-        kid: 'encryption-key-id',
+        kid: encryptionKeys.kid,
         expiry: 123143234,
         scope: [
           { domain: 'cv.work', area: 'experience', purpose: 'För att kunna bygga ditt CV', description: 'this data contains....', permissions: [ 'write' ], lawfulBasis: 'CONSENT', required: true },
@@ -65,6 +69,22 @@ describe('routes /api/consents', () => {
       data.scope = []
       const response = await api.post('/api/consents/requests', payload(data))
       expect(response.status).toEqual(400)
+    })
+    it('returns 200 if succesful', async () => {
+      const reqPayload = payload(data)
+      const result = await api.post('/api/consents/requests', reqPayload)
+      expect(result.body.message).toBeUndefined()
+      expect(result.status).toEqual(201)
+    })
+    it('returns id and expires if succesful', async () => {
+      const reqPayload = payload(data)
+      const result = await api.post('/api/consents/requests', reqPayload)
+      expect(result.body).toEqual({
+        data: {
+          id: expect.any(String),
+          expires: expect.any(String)
+        }
+      })
     })
     it('saves consent request to redis if it validates', async () => {
       const reqPayload = payload(data)

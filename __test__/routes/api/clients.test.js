@@ -3,6 +3,10 @@ const { createApi, generateKeys, payload } = require('../../helpers')
 const pg = require('../../../__mocks__/pg')
 const express = require('express')
 const { serialize } = require('jwks-provider')
+const { getKey } = require('jwks-manager')
+jest.mock('jwks-manager', () => ({
+  getKey: jest.fn()
+}))
 
 describe('routes api/clients', () => {
   let clientKeys, clientHost
@@ -24,6 +28,7 @@ describe('routes api/clients', () => {
   })
   let api, data, clients
   beforeEach(() => {
+    getKey.mockResolvedValue({ rsaPublicKey: clientKeys.publicKey })
     api = createApi(app)
 
     data = {

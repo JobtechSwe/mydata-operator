@@ -36,8 +36,10 @@ describe('/middleware/auth', () => {
   })
   describe('#signed', () => {
     describe('with clientId and kid (general)', () => {
-      let payload
+      let payload, keys
       beforeEach(() => {
+        keys = {}
+        keys[clientKey.kid] = clientKey
         payload = {
           data: {
             clientId: 'http://mydata.work',
@@ -119,12 +121,18 @@ describe('/middleware/auth', () => {
         let server, signingKey
         beforeEach(async () => {
           signingKey = await generateKeys('sig', 'some_other_signing_key')
+          keys[signingKey.kid] = signingKey
 
           const app = express()
           app.use(express.json())
           app.get('/jwks', (req, res) => {
             const keys = jwksProvider.serialize([clientKey, signingKey])
             res.send(keys)
+          })
+          app.get('/jwks/:kid', (req, res) => {
+            const key = keys[req.params.kid]
+            const serialized = jwksProvider.serialize([key]).keys[0]
+            res.send(serialized)
           })
           return new Promise((resolve) => {
             server = app.listen(() => {
@@ -143,7 +151,7 @@ describe('/middleware/auth', () => {
           await server.close()
         })
         it('throws a 401 if specified key cannot be retrieved', async () => {
-          payload.data.jwksUrl = 'http://somethingelse.bork'
+          payload.signature.kid = 'http://somethingelse.bork/jwks/derp'
           const res = await api.post('/test', payload)
           expect(res.status).toEqual(401)
           expect(res.body.message).toEqual('Could not retrieve key')

@@ -6,6 +6,9 @@ const jwtService = require('../../../lib/services/jwt')
 jest.mock('../../../lib/services/jwt')
 jest.mock('../../../lib/adapters/redis')
 jest.mock('axios')
+jest.mock('uuid', () => ({
+  v4: jest.fn().mockReturnValue('b00e8283-5026-4204-aeb2-545809fd52a9')
+}))
 
 const base64 = (txt) => Buffer.from(txt, 'utf8').toString('base64')
 
@@ -105,22 +108,27 @@ describe('services/consents #create', () => {
     expect(axios.post).toBeCalledWith('http://cv.work/events', {
       type: 'CONSENT_APPROVED',
       payload: {
-        consentId: expect.any(String),
-        accessToken: expect.any(String),
         consentRequestId: '809eea87-6182-4cb4-8d6e-df6d411149a2',
-        consentEncryptionKeyId: 'http://localhost:4000/jwks/enc_20190115082310',
+        consentId: 'b00e8283-5026-4204-aeb2-545809fd52a9',
+        accessToken: expect.any(String),
         scope: [
           {
-            // clientEncryptionDocumentKey: 'YXNkYXNkYXNkc3VpYWhzZGl1YWhzZGl1YXNoZGl1YXNkPg==',
             domain: 'http://cv.com',
             area: 'education',
             description: 'Stuff',
-            lawfulBasis: 'strength',
             permissions: ['READ'],
-            purpose: 'dominance'
+            purpose: 'dominance',
+            lawfulBasis: 'strength',
+            readKeys: [
+              'b00e8283-5026-4204-aeb2-545809fd52a9/account_key',
+              'http://localhost:4000/jwks/enc_20190115082310'
+            ]
           }
         ],
-        accountKey: base64('-----BEGIN RSA PUBLIC KEY----- account')
+        keys: {
+          'b00e8283-5026-4204-aeb2-545809fd52a9/account_key': base64('-----BEGIN RSA PUBLIC KEY----- account'),
+          'http://localhost:4000/jwks/enc_20190115082310': base64('-----BEGIN RSA PUBLIC KEY----- consent')
+        }
       }
     })
   })
